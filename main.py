@@ -28,11 +28,10 @@ def start_programu():
     def vyfot_okno():
         printscreen = adb_printsreen()
 
-        cv2.imwrite("./pokemoni/IMAGE1.png", printscreen)  # Save screenshot
+        cv2.imwrite("./IMAGE1.png", printscreen)  # Save screenshot
         # cv2.namedWindow("PokemonGO snímač", cv2.WINDOW_AUTOSIZE)  # Create window with freedom of dimensions
-        im = printscreen
-        imS = cv2.resize(im, (300, 600))  # Resize image
-        cv2.imshow("PokemonGOsnimac", imS)  # Show image
+        ims = cv2.resize(printscreen, (300, 600))  # Resize image
+        cv2.imshow("PokemonGOsnimac", ims)  # Show image
 
     def vrat_cislo_v_kruhu(cislo=0):
         # u"\u2460" jednicka v kolečku
@@ -59,29 +58,29 @@ def start_programu():
         print(cislo)
         return cislo
 
-    def zjisti_atributy_pokemona(poradi):
+    def najdi_horni_hranu(image):
+        # Střed obrazovky X 1080 Y 540
+        for delka_y in range(1080):
+            if all(image[1080 + delka_y, 540] == [255, 255, 255]):
+                return int(1080 + delka_y)
+        return "hrana nenalezena"
+
+    def najdi_spodni_hranu(image, horni_hrana):
+        for delka_y in range(2160 - horni_hrana):
+            if any(image[horni_hrana + delka_y, 540] != [255, 255, 255]):
+                return int(horni_hrana + delka_y)
+        return "hrana nenalezena"
+
+    def zjisti_atributy_pokemona(poradi=1):
         nacteno = True
 
-        while (nacteno):
+        while nacteno:
             try:
-                image = adb_printsreen()
+                screenshot = adb_printsreen()
 
-                def najdi_horni_hranu(image):
-                    # Střed obrazovky X 1080 Y 540
-                    for x in range(1080):
-                        if all(image[1080 + x, 540] == [255, 255, 255]):
-                            return int(1080 + x)
-                    return "hrana nenalezena"
-
-                def najdi_spodni_hranu(image, horni_hrana):
-                    for x in range(2160 - horni_hrana):
-                        if any(image[horni_hrana + x, 540] != [255, 255, 255]):
-                            return int(horni_hrana + x)
-                    return "hrana nenalezena"
-
-                horni_hrana = najdi_horni_hranu(image)
-                spodni_hrana = najdi_spodni_hranu(image, najdi_horni_hranu(image))
-                crop_img = image[horni_hrana:spodni_hrana, 100:520]
+                horni_hrana = najdi_horni_hranu(screenshot)
+                spodni_hrana = najdi_spodni_hranu(screenshot, najdi_horni_hranu(screenshot))
+                crop_img = screenshot[horni_hrana:spodni_hrana, 100:520]
 
                 att_hodnota = 0
                 def_hodnota = 0
@@ -106,13 +105,14 @@ def start_programu():
                 def_hodnota = def_hodnota // 22
                 hp_hodnota = hp_hodnota // 22
                 procento = (att_hodnota + def_hodnota + hp_hodnota) * 100 // 45
-                # text = str(procento) + "%(" + vrat_cislo_v_kruhu(att_hodnota) + ")(" + vrat_cislo_v_kruhu(def_hodnota) + ")(" + vrat_cislo_v_kruhu(hp_hodnota) +")"
+                # text = str(procento) + "%(" + vrat_cislo_v_kruhu(att_hodnota) + ")(" + vrat_cislo_v_kruhu(
+                # def_hodnota) + ")(" + vrat_cislo_v_kruhu(hp_hodnota) +")"
                 text = str(procento) + "%" + str(att_hodnota) + "-" + str(def_hodnota) + "-" + str(hp_hodnota)
                 # cv2.imwrite("./pokemoni/pkm" + str(poradi+ + 1) + " " + str(text) + "_detail.png", image)
                 return text
 
-            except:
-                print("Nepovedlo se načíst data pokemona...")
+            except TypeError:
+                print("Nepovedlo se načíst data pokemona... Není vidět tabulka s hodnotami")
                 nacteno = True
 
     def swipni_doprava():
@@ -126,7 +126,7 @@ def start_programu():
     def btn_prejmenuj_pokemona(nove_jmeno=""):
         spust_adb_prikaz("tap 540 915")  # tapnutí na TLAČÍTKO přejmenování pokémona
 
-        for x in range(13):
+        for ciselnik in range(13):
             spust_adb_prikaz("keyevent 67", 0)  # klávesa DELETE
 
         time.sleep(2)
@@ -162,8 +162,8 @@ def start_programu():
         # pokemon políčko je X 330 na Y 390
         if pozice_na_radku > 3:
             pozice_na_radku = 3  # více než 3 pokemoni na řádku nejsou
-        souradnice_X = 198 + ((pozice_na_radku - 1) * 330)
-        prikaz = "tap " + str(souradnice_X) + " 612"
+        souradnice_x = 198 + ((pozice_na_radku - 1) * 330)
+        prikaz = "tap " + str(souradnice_x) + " 612"
 
         spust_adb_prikaz(prikaz)  # 1.POKEMON VLEVO NAHORE tapnutí
 
@@ -186,7 +186,7 @@ def start_programu():
 
     def lze_prejmenovat(img_rgb):
         img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-        template = cv2.imread('prejmenovat.png', 0)  # výstřižek ikony pro přejmenování
+        template = cv2.imread('btn_rename.png', 0)  # výstřižek ikony pro přejmenování
 
         res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
         threshold = 0.8
