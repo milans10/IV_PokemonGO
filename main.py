@@ -58,38 +58,60 @@ def start_programu():
         print(cislo)
         return cislo
 
-    def najdi_horni_hranu(image):
-        # Střed obrazovky X 1080 Y 540
-        for delka_y in range(1080):
-            if all(image[1080 + delka_y, 540] == [255, 255, 255]):
-                return int(1080 + delka_y)
-        return "hrana nenalezena"
+    def najdi_staty():
+        global prostredek, crop_img, stredy
+        screenshot = adb_printsreen()
 
-    def najdi_spodni_hranu(image, horni_hrana):
-        for delka_y in range(2160 - horni_hrana):
-            if any(image[horni_hrana + delka_y, 540] != [255, 255, 255]):
-                return int(horni_hrana + delka_y)
-        return "hrana nenalezena"
+        img_gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
+        template = cv2.imread('img_statsIV.png', 0)
+        w, h = template.shape[::-1]
+
+        res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+        threshold = 0.8
+        loc = np.where(res >= threshold)
+
+        if not loc[0].size > 0:
+            print("prazdne")
+        else:
+            osa_Y = min(loc[0])
+            osa_X = max(loc[1])
+
+            crop_img = img_gray[osa_Y:osa_Y + h, osa_X + 0:osa_X + w - 10]  # vyříznutí statů IV
+            crop_img3 = crop_img[0:h, int(w / 2):int(
+                w / 2) + 1]  # vyříznutí kontrolního prhu pro nalezení souřadnic řádků s ATT, DEF, HP
+
+            sekce = []
+            stredy = []
+            for a in range(h - 1, 0, -1):
+                barva = crop_img3[a, 0]
+                if all(barva != [255, 255, 255]):
+                    sekce.append(a)
+
+            sekce = sorted(sekce)
+            for b in range(len(sekce) - 1):
+                if b > 8:
+                    if ((sekce[b + 1] - sekce[b]) > 10) | (b == len(sekce) - 2):
+                        if len(stredy) < 1:
+                            prostredek = int(b / 2)
+                        stredy.append(sekce[b] - prostredek)
+
+        return crop_img, w, stredy
 
     def zjisti_atributy_pokemona(poradi=1):
         nacteno = True
 
         while nacteno:
             try:
-                screenshot = adb_printsreen()
-
-                horni_hrana = najdi_horni_hranu(screenshot)
-                spodni_hrana = najdi_spodni_hranu(screenshot, najdi_horni_hranu(screenshot))
-                crop_img = screenshot[horni_hrana:spodni_hrana, 100:520]
-
+                crop_img, delka, stredy = najdi_staty()
+                delka = delka - 10
                 att_hodnota = 0
                 def_hodnota = 0
                 hp_hodnota = 0
 
-                for a in range(420):
-                    att_barva = crop_img[126, a]
-                    def_barva = crop_img[229, a]
-                    hp_barva = crop_img[333, a]
+                for a in range(delka):
+                    att_barva = crop_img[stredy[0] - 1, a]
+                    def_barva = crop_img[stredy[1] - 1, a]
+                    hp_barva = crop_img[stredy[2] - 1, a]
                     if any((att_barva != [255, 255, 255]) & (att_barva != [226, 226, 226]) & (
                             att_barva < [232, 232, 232])):
                         att_hodnota = att_hodnota + 1
