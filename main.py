@@ -1,12 +1,15 @@
 import datetime
 import json
 import subprocess
+import threading
 import time
+from tkinter import *
+from tkinter import scrolledtext
 
 import cv2
-import keyboard as keyboard
 import numpy as np
 import pytesseract
+from PIL import Image, ImageTk
 
 import konstanty
 
@@ -32,6 +35,16 @@ def start_programu():
         # cv2.namedWindow("PokemonGO snímač", cv2.WINDOW_AUTOSIZE)  # Create window with freedom of dimensions
         ims = cv2.resize(printscreen, (300, 600))  # Resize image
         cv2.imshow("PokemonGOsnimac", ims)  # Show image
+
+    def ukaz_printscreen_na_boku(screenshot):
+        global imgtk
+        photo2 = cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
+        photo2 = Image.fromarray(photo2)
+        photo2 = photo2.resize((200, 400), Image.ANTIALIAS)
+        imgtk = ImageTk.PhotoImage(image=photo2)
+
+        img_bg2 = Label(master=gui, image=imgtk)
+        img_bg2.grid(row=0, column=2, rowspan=5, pady=5, padx=5)
 
     def vrat_cislo_v_kruhu(cislo=0):
         # u"\u2460" jednicka v kolečku
@@ -61,6 +74,8 @@ def start_programu():
     def najdi_staty():
         global prostredek, crop_img, stredy
         screenshot = adb_printsreen()
+
+        ukaz_printscreen_na_boku(screenshot)  # ukáže screenshot na boku okna
 
         img_gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
         template = cv2.imread('img_statsIV.png', 0)
@@ -221,66 +236,132 @@ def start_programu():
             # print(min(loc[0]))
             return True
 
-    while True:
+    def spust_prejmenovani():
+        # btn_uprostred()
+        # btn_seznam_pokemonu()
+        pocet_pokemonu = int(zjisti_pocet_pokemonu())
+        # print("celkem pokumonu k přejmenování:", pocet_pokemonu)
+        napis_stav("celkem pokumonu k přejmenování:" + str(pocet_pokemonu))
+        btn_pokemon()
 
-        if keyboard.is_pressed('q'):  # klávesa "q" konec programu
-            # cv2.destroyAllWindows()
-            break
+        start = time.time()
+        # print("Čas začátku: ", time.strftime('%H:%M:%S', time.localtime(start)))
+        napis_stav("Čas začátku: " + time.strftime('%H:%M:%S', time.localtime(start)))
+        doba_trvani = 0
 
-        if keyboard.is_pressed('w'):  # klávesa "w" začne s hromadným přejmenováváním
-            print("macknuto W")
-            # btn_uprostred()
-            # btn_seznam_pokemonu()
-            pocet_pokemonu = int(zjisti_pocet_pokemonu())
-            print("celkem pokumonu k přejmenování:", pocet_pokemonu)
+        for x in range(pocet_pokemonu):
 
-            btn_pokemon()
+            img = adb_printsreen()
 
-            start = time.time()
-            print("Čas začátku: ", time.strftime('%H:%M:%S', time.localtime(start)))
-            doba_trvani = 0
+            if lze_prejmenovat(img):
+                btn_menu_pokemonu()
+                btn_appraise()
+                klik_do_stredu()
+                jmeno = zjisti_atributy_pokemona(x)
+                if doba_trvani != 0:
+                    # print("Pokemon #", (x + 1), " má hodnoty:", jmeno)
+                    napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
+                # cv2.imwrite("./pokemoni/pkm " + str(x+1) + " " + str(jmeno) + ".png", img)
 
-            for x in range(pocet_pokemonu):
+                klik_do_stredu()
+                btn_prejmenuj_pokemona(jmeno)
+                swipni_doprava()
+                time.sleep(5)
 
-                img = adb_printsreen()
+                if doba_trvani == 0:
+                    end = time.time()
+                    doba_trvani = (end - start) // 1
+                    # print("odhadovaný čas konce za", datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu)))
+                    # print("Odhadovaný čas konce za", datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu)))
+                    napis_stav(
+                        "Odhadovaný čas konce za" + str(datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu))))
 
-                if lze_prejmenovat(img):
-                    btn_menu_pokemonu()
-                    btn_appraise()
-                    klik_do_stredu()
-                    jmeno = zjisti_atributy_pokemona(x)
-                    if doba_trvani != 0:
-                        print("Pokemon #", (x + 1), " má hodnoty:", jmeno)
-                    # cv2.imwrite("./pokemoni/pkm " + str(x+1) + " " + str(jmeno) + ".png", img)
+                    # print("Hotovo pokémonů:", x + 1)
+                    # print("Pokemon #", (x + 1), " má hodnoty:", jmeno)
+                    napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
+            else:
+                # print("Přeskakuji pokemona #", (x + 1), " (nelze jej přejmenovat) na dalšího pokemona")
+                napis_stav("Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
+                swipni_doprava()
+                time.sleep(5)
 
-                    klik_do_stredu()
-                    btn_prejmenuj_pokemona(jmeno)
-                    swipni_doprava()
-                    time.sleep(5)
+            # kontrola na ukončení přejmenovávání
+            global ukonci_vlakno
+            if ukonci_vlakno:
+                btn_prejmenovat.config(state="normal")
+                break
 
-                    if doba_trvani == 0:
-                        end = time.time()
-                        doba_trvani = (end - start) // 1
-                        # print("odhadovaný čas konce za", datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu)))
-                        print("Odhadovaný čas konce za", datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu)))
+        konec = time.time()
+        # print("Čas ukončení: ", time.strftime('%H:%M:%S', time.localtime(konec)), "\t doba trvání", datetime.timedelta(seconds=(konec - start)))
+        napis_stav("Čas ukončení: " + time.strftime('%H:%M:%S', time.localtime(konec)) + "\t doba trvání" + str(
+            datetime.timedelta(seconds=(konec - start))))
+        btn_uprostred()
+        # print("Konec")
+        napis_stav("Konec")
 
-                        # print("Hotovo pokémonů:", x + 1)
-                        print("Pokemon #", (x + 1), " má hodnoty:", jmeno)
-                else:
-                    print("Přeskakuji pokemona #", (x + 1), " (nelze jej přejmenovat) na dalšího pokemona")
-                    swipni_doprava()
-                    time.sleep(5)
+    def konec():
+        window.destroy()
+        sys.exit()
 
-            konec = time.time()
-            print("Čas ukončení: ", time.strftime('%H:%M:%S', time.localtime(konec)), "\t doba trvání",
-                  datetime.timedelta(seconds=(konec - start)))
-            btn_uprostred()
-            print("konec")
-            break
+    def zacni():
+        global t1, ukonci_vlakno
+        ukonci_vlakno = False
+        t1 = threading.Thread(target=spust_prejmenovani)
+        t1.daemon = True
 
-        if keyboard.is_pressed('e'):  # klávesa "e" vyfotí okno
-            vyfot_okno()
-            break
+        if btn_prejmenovat_text.get() == "Spustit přejmenovávání":
+            btn_prejmenovat.config(state="disabled")
+            t1.start()
+            time.sleep(2)
+            if t1.is_alive():
+                btn_prejmenovat_text.set("Ukončit přejmenovávání")
+            btn_prejmenovat.config(state="normal")
+
+        else:
+            ukonci_vlakno = True
+            btn_prejmenovat_text.set("Spustit přejmenovávání")
+            btn_prejmenovat.config(state="disabled")
+
+    def napis_stav(text):
+        txt_prubeh.config(state=NORMAL)
+        txt_prubeh.insert(END, text + "\n")
+        txt_prubeh.config(state=DISABLED)
+
+    window = Tk()
+    # window.minsize(957, 400)
+    # window.maxsize(957, 400)
+    # window.geometry("957x400")
+    window.title("IV Pokémon GO")
+    window.iconphoto(False, PhotoImage(file='img_pokeball.png'))
+    window.configure(bg='black')
+
+    gui = Frame(window, bg="black", relief=RAISED, borderwidth=1)
+
+    btn_prejmenovat_text = StringVar()
+    btn_prejmenovat_text.set("Spustit přejmenovávání")
+    btn_prejmenovat = Button(master=gui, textvariable=btn_prejmenovat_text, command=zacni)
+    btn_prejmenovat.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+
+    btn_vyfot = Button(master=gui, text="Udělat printscreen", command=vyfot_okno).grid(row=1, column=0, sticky="nsew",
+                                                                                padx=5,
+                                                                                pady=5)
+    btn_konec = Button(master=gui, text="Konec", command=konec).grid(row=2, column=0, sticky="nsew", padx=5,
+                                                                     pady=5)
+
+    image = Image.open("img_bg.png")
+    image = image.resize((270, 270), Image.ANTIALIAS)
+    photo = ImageTk.PhotoImage(image)
+
+    img_bg = Label(master=gui, image=photo)
+    img_bg.grid(row=4, column=0, pady=5, padx=5)
+
+    txt_prubeh = scrolledtext.ScrolledText(master=gui)
+    txt_prubeh.config(state=DISABLED)
+    txt_prubeh.grid(row=0, column=1, rowspan=5, pady=5, padx=5, sticky="nsew")
+
+    gui.grid(sticky="nsew")
+
+    window.mainloop()
 
 
 if __name__ == '__main__':
