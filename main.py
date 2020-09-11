@@ -44,7 +44,7 @@ def start_programu():
         imgtk = ImageTk.PhotoImage(image=photo2)
 
         img_bg2 = Label(master=gui, image=imgtk)
-        img_bg2.grid(row=0, column=2, rowspan=5, pady=5, padx=5)
+        img_bg2.grid(row=0, column=2, rowspan=10, pady=5, padx=5)
 
     def vrat_cislo_v_kruhu(cislo=0):
         # u"\u2460" jednicka v kolečku
@@ -284,10 +284,11 @@ def start_programu():
                 napis_stav("Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
                 swipni_doprava()
                 time.sleep(5)
-
+            print("zbyva",kolik_prejmenovat.get()," x=",x)
             # kontrola na ukončení přejmenovávání
             global ukonci_vlakno
-            if ukonci_vlakno:
+            if ukonci_vlakno | (kolik_prejmenovat.get() == (x+1)):
+                btn_prejmenovat_text.set("Spustit přejmenovávání")
                 btn_prejmenovat.config(state="normal")
                 break
 
@@ -342,10 +343,17 @@ def start_programu():
     btn_prejmenovat = Button(master=gui, textvariable=btn_prejmenovat_text, command=zacni)
     btn_prejmenovat.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-    btn_vyfot = Button(master=gui, text="Udělat printscreen", command=vyfot_okno).grid(row=1, column=0, sticky="nsew",
-                                                                                padx=5,
-                                                                                pady=5)
-    btn_konec = Button(master=gui, text="Konec", command=konec).grid(row=2, column=0, sticky="nsew", padx=5,
+    lb_kolik_prejmenovat = Label(gui, text="Přejmenovat pokémonů (0=vše ... 100 max)")
+    lb_kolik_prejmenovat.grid(row=1, column=0, sticky="nsew", padx=5)
+
+    kolik_prejmenovat = Scale(gui, from_=0, to=100, orient=HORIZONTAL)
+    kolik_prejmenovat.set(0)
+    kolik_prejmenovat.grid(row=2, column=0, sticky="nsew", padx=5)
+
+    btn_vyfot = Button(master=gui, text="Udělat printscreen", command=vyfot_okno).grid(row=3, column=0, sticky="nsew",
+                                                                                       padx=5,
+                                                                                       pady=5)
+    btn_konec = Button(master=gui, text="Konec", command=konec).grid(row=4, column=0, sticky="nsew", padx=5,
                                                                      pady=5)
 
     image = Image.open("img_bg.png")
@@ -353,11 +361,11 @@ def start_programu():
     photo = ImageTk.PhotoImage(image)
 
     img_bg = Label(master=gui, image=photo)
-    img_bg.grid(row=4, column=0, pady=5, padx=5)
+    img_bg.grid(row=5, column=0, pady=5, padx=5)
 
     txt_prubeh = scrolledtext.ScrolledText(master=gui)
     txt_prubeh.config(state=DISABLED)
-    txt_prubeh.grid(row=0, column=1, rowspan=5, pady=5, padx=5, sticky="nsew")
+    txt_prubeh.grid(row=0, column=1, rowspan=6, pady=5, padx=5, sticky="nsew")
 
     gui.grid(sticky="nsew")
 
