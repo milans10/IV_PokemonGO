@@ -257,7 +257,7 @@ def start_programu():
         else:
             osa_Y = min(loc[0])
             osa_X = max(loc[1])
-            crop_img = img_gray[osa_Y:osa_Y + h + 10, 0:(osa_X)]
+            crop_img = img_gray[osa_Y:osa_Y + h + 40, 50:(osa_X)]
             pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
             text = pytesseract.image_to_string(crop_img)
             text = re.sub('[^0-9a-zA-Z%-]', '', text)
