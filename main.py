@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 import subprocess
 import threading
 import time
@@ -236,6 +237,28 @@ def start_programu():
             # print(min(loc[0]))
             return True
 
+    def najdi_jmeno_pokemona(screenshot):
+        img_rgb = screenshot
+        img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
+        template = cv2.imread('btn_rename.png', 0)
+        w, h = template.shape[::-1]
+
+        res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+        threshold = 0.8
+        loc = np.where(res >= threshold)
+
+        if not loc[0].size > 0:
+            text = "Jméno nerozpoznáno"
+            return text
+        else:
+            osa_Y = min(loc[0])
+            osa_X = max(loc[1])
+            crop_img = img_gray[osa_Y:osa_Y + h + 10, 0:(osa_X)]
+            pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+            text = pytesseract.image_to_string(crop_img)
+            text = re.sub('[^0-9a-zA-Z%-]', '', text)
+            return text
+
     def spust_prejmenovani():
         # btn_uprostred()
         # btn_seznam_pokemonu()
@@ -260,6 +283,7 @@ def start_programu():
                 jmeno = zjisti_atributy_pokemona(x)
                 if doba_trvani != 0:
                     # print("Pokemon #", (x + 1), " má hodnoty:", jmeno)
+                    napis_stav("Původní jméno pokémona #" + str(x + 1) + " " + najdi_jmeno_pokemona(img))
                     napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
                 # cv2.imwrite("./pokemoni/pkm " + str(x+1) + " " + str(jmeno) + ".png", img)
 
@@ -278,16 +302,16 @@ def start_programu():
 
                     # print("Hotovo pokémonů:", x + 1)
                     # print("Pokemon #", (x + 1), " má hodnoty:", jmeno)
+                    napis_stav("Původní jméno pokémona #" + str(x + 1) + " " + najdi_jmeno_pokemona(img))
                     napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
             else:
                 # print("Přeskakuji pokemona #", (x + 1), " (nelze jej přejmenovat) na dalšího pokemona")
                 napis_stav("Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
                 swipni_doprava()
                 time.sleep(5)
-            print("zbyva",kolik_prejmenovat.get()," x=",x)
             # kontrola na ukončení přejmenovávání
             global ukonci_vlakno
-            if ukonci_vlakno | (kolik_prejmenovat.get() == (x+1)):
+            if ukonci_vlakno | (kolik_prejmenovat.get() == (x + 1)):
                 btn_prejmenovat_text.set("Spustit přejmenovávání")
                 btn_prejmenovat.config(state="normal")
                 break
@@ -347,7 +371,7 @@ def start_programu():
     lb_kolik_prejmenovat.grid(row=1, column=0, sticky="nsew", padx=5)
 
     kolik_prejmenovat = Scale(gui, from_=0, to=100, orient=HORIZONTAL)
-    kolik_prejmenovat.set(0)
+    kolik_prejmenovat.set(1)
     kolik_prejmenovat.grid(row=2, column=0, sticky="nsew", padx=5)
 
     btn_vyfot = Button(master=gui, text="Udělat printscreen", command=vyfot_okno).grid(row=3, column=0, sticky="nsew",
