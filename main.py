@@ -1,6 +1,5 @@
 import datetime
 import json
-import re
 import subprocess
 import threading
 import time
@@ -38,14 +37,14 @@ def start_programu():
         cv2.imshow("PokemonGOsnimac", ims)  # Show image
 
     def ukaz_printscreen_na_boku(screenshot):
-        global imgtk
         photo2 = cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
         photo2 = Image.fromarray(photo2)
         photo2 = photo2.resize((200, 400), Image.ANTIALIAS)
-        imgtk = ImageTk.PhotoImage(image=photo2)
 
+        global imgtk
+        imgtk = ImageTk.PhotoImage(image=photo2)
         img_bg2 = Label(master=gui, image=imgtk)
-        img_bg2.grid(row=0, column=2, rowspan=10, pady=5, padx=5)
+        img_bg2.grid(row=0, column=2, rowspan=20, pady=5, padx=5)
 
     def vrat_cislo_v_kruhu(cislo=0):
         # u"\u2460" jednicka v kolečku
@@ -147,6 +146,11 @@ def start_programu():
                 # def_hodnota) + ")(" + vrat_cislo_v_kruhu(hp_hodnota) +")"
                 text = str(procento) + "%" + str(att_hodnota) + "-" + str(def_hodnota) + "-" + str(hp_hodnota)
                 # cv2.imwrite("./pokemoni/pkm" + str(poradi+ + 1) + " " + str(text) + "_detail.png", image)
+
+                if extra_prejmenovani.get() != 0:
+                    # jde se přejmovávat pokud splňuje nastavený limit
+                    if int(hranice_na_prejmenovani.get()) >= int(procento):
+                        return extra_prejmenovat_na.get()
                 return text
 
             except TypeError:
@@ -263,14 +267,22 @@ def start_programu():
         # btn_uprostred()
         # btn_seznam_pokemonu()
         pocet_pokemonu = int(zjisti_pocet_pokemonu())
-        # print("celkem pokumonu k přejmenování:", pocet_pokemonu)
-        napis_stav("celkem pokumonu k přejmenování:" + str(pocet_pokemonu))
+        # print("Maximálně počet pokémonů k přejmenování:", pocet_pokemonu)
+        napis_stav("Maximálně počet pokémonů k přejmenování:" + str(pocet_pokemonu))
         btn_pokemon()
 
         start = time.time()
         # print("Čas začátku: ", time.strftime('%H:%M:%S', time.localtime(start)))
         napis_stav("Čas začátku: " + time.strftime('%H:%M:%S', time.localtime(start)))
         doba_trvani = 0
+
+        def vypis_prubeh_prejmenovani(x, jmeno, img):
+            napis_stav("Původní jméno pokémona #" + str(x + 1) + " " + najdi_jmeno_pokemona(img))
+            if extra_prejmenovat_na.get() == jmeno:
+                napis_stav(
+                    "Pokemon #" + str(x + 1) + " splnil kritérium pro extra přejmenování. Přejmenovávám na " + jmeno)
+            else:
+                napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
 
         for x in range(pocet_pokemonu):
 
@@ -283,8 +295,7 @@ def start_programu():
                 jmeno = zjisti_atributy_pokemona(x)
                 if doba_trvani != 0:
                     # print("Pokemon #", (x + 1), " má hodnoty:", jmeno)
-                    napis_stav("Původní jméno pokémona #" + str(x + 1) + " " + najdi_jmeno_pokemona(img))
-                    napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
+                    vypis_prubeh_prejmenovani(x, jmeno, img)
                 # cv2.imwrite("./pokemoni/pkm " + str(x+1) + " " + str(jmeno) + ".png", img)
 
                 klik_do_stredu()
@@ -302,8 +313,7 @@ def start_programu():
 
                     # print("Hotovo pokémonů:", x + 1)
                     # print("Pokemon #", (x + 1), " má hodnoty:", jmeno)
-                    napis_stav("Původní jméno pokémona #" + str(x + 1) + " " + najdi_jmeno_pokemona(img))
-                    napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
+                    vypis_prubeh_prejmenovani(x, jmeno, img)
             else:
                 # print("Přeskakuji pokemona #", (x + 1), " (nelze jej přejmenovat) na dalšího pokemona")
                 napis_stav("Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
@@ -367,17 +377,54 @@ def start_programu():
     btn_prejmenovat = Button(master=gui, textvariable=btn_prejmenovat_text, command=zacni)
     btn_prejmenovat.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-    lb_kolik_prejmenovat = Label(gui, text="Přejmenovat pokémonů (0=vše ... 100 max)")
-    lb_kolik_prejmenovat.grid(row=1, column=0, sticky="nsew", padx=5)
+    Label(gui, text="Přejmenovat pokémonů (0=vše ... 100 max)").grid(row=1, column=0, sticky="nsew", padx=5)
 
     kolik_prejmenovat = Scale(gui, from_=0, to=100, orient=HORIZONTAL)
     kolik_prejmenovat.set(1)
     kolik_prejmenovat.grid(row=2, column=0, sticky="nsew", padx=5)
 
-    btn_vyfot = Button(master=gui, text="Udělat printscreen", command=vyfot_okno).grid(row=3, column=0, sticky="nsew",
+    # Sekce extra přejmenování
+    sekce_prejmenovat = LabelFrame(gui, text="Extra přejmenovat")
+    sekce_prejmenovat.grid(row=3, padx=5, pady=5, rowspan=5, sticky="ewns")
+
+    extra_prejmenovani = IntVar()
+    extra_prejmenovani.set(0)
+
+    def stav_extra_prejmenovat():
+        if extra_prejmenovani.get() == 0:
+            hranice_na_prejmenovani.config(state='disabled')
+            extra_prejmenovat_na.config(state='disabled')
+        else:
+            hranice_na_prejmenovani.config(state='normal')
+            extra_prejmenovat_na.config(state='normal')
+
+    Checkbutton(sekce_prejmenovat, text="Přejmenovat pokémona s % nižším než", variable=extra_prejmenovani,
+                command=stav_extra_prejmenovat).pack()
+    hranice_na_prejmenovani = Scale(sekce_prejmenovat, from_=0, to=100, orient=HORIZONTAL)
+    hranice_na_prejmenovani.set(82)
+    hranice_na_prejmenovani.pack(fill=X, padx=10)
+    Label(sekce_prejmenovat, text="přejmovat na").pack()
+
+    hodnota_extra_prejmenovat_na = StringVar()
+
+    def maximalne_dvanact(*args):
+        hodnota = extra_prejmenovat_na.get()
+        if len(hodnota) > 12:
+            extra_prejmenovat_na.delete(0, END)
+            extra_prejmenovat_na.insert(0, hodnota[:12])
+        return
+
+    hodnota_extra_prejmenovat_na.trace_add("write", maximalne_dvanact)
+
+    extra_prejmenovat_na = Entry(sekce_prejmenovat, textvariable=hodnota_extra_prejmenovat_na)
+    extra_prejmenovat_na.pack(fill=X, padx=10, pady=5)
+
+    stav_extra_prejmenovat()
+
+    btn_vyfot = Button(master=gui, text="Udělat printscreen", command=vyfot_okno).grid(row=9, column=0, sticky="nsew",
                                                                                        padx=5,
                                                                                        pady=5)
-    btn_konec = Button(master=gui, text="Konec", command=konec).grid(row=4, column=0, sticky="nsew", padx=5,
+    btn_konec = Button(master=gui, text="Konec", command=konec).grid(row=10, column=0, sticky="nsew", padx=5,
                                                                      pady=5)
 
     image = Image.open("img_bg.png")
@@ -385,11 +432,12 @@ def start_programu():
     photo = ImageTk.PhotoImage(image)
 
     img_bg = Label(master=gui, image=photo)
-    img_bg.grid(row=5, column=0, pady=5, padx=5)
+    img_bg.grid(row=11, column=0, pady=5, padx=5)
 
+    # Prostřední sekce
     txt_prubeh = scrolledtext.ScrolledText(master=gui)
     txt_prubeh.config(state=DISABLED)
-    txt_prubeh.grid(row=0, column=1, rowspan=6, pady=5, padx=5, sticky="nsew")
+    txt_prubeh.grid(row=0, column=1, rowspan=20, pady=5, padx=5, sticky="nsew")
 
     gui.grid(sticky="nsew")
 
