@@ -1,3 +1,5 @@
+#  Copyright (c) 2020. Created by Milan Svarc
+
 import datetime
 import json
 import subprocess
@@ -12,6 +14,7 @@ import pytesseract
 from PIL import Image, ImageTk
 
 import konstanty
+from pokemon import Pokemon
 
 
 def start_programu():
@@ -147,9 +150,14 @@ def start_programu():
                 text = str(procento) + "%" + str(att_hodnota) + "-" + str(def_hodnota) + "-" + str(hp_hodnota)
                 # cv2.imwrite("./pokemoni/pkm" + str(poradi+ + 1) + " " + str(text) + "_detail.png", image)
 
+                global novy_pokemon
+                novy_pokemon.__init__(att_power=att_hodnota, def_power=def_hodnota, hp_power=hp_hodnota)
+
                 if extra_prejmenovani.get() != 0:
                     # jde se přejmovávat pokud splňuje nastavený limit
                     if int(hranice_na_prejmenovani.get()) >= int(procento):
+                        if extra_prejmenovani_posix.get() == 1:
+                            return extra_prejmenovat_na.get() + " " + str(procento) + "%"
                         return extra_prejmenovat_na.get()
                 return text
 
@@ -285,21 +293,22 @@ def start_programu():
                 napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
 
         for x in range(pocet_pokemonu):
-
             img = adb_printsreen()
+            global novy_pokemon
+            novy_pokemon = Pokemon()
 
             if lze_prejmenovat(img):
                 btn_menu_pokemonu()
                 btn_appraise()
                 klik_do_stredu()
-                jmeno = zjisti_atributy_pokemona(x)
+                novy_pokemon.jmeno = zjisti_atributy_pokemona(x)
                 if doba_trvani != 0:
-                    # print("Pokemon #", (x + 1), " má hodnoty:", jmeno)
-                    vypis_prubeh_prejmenovani(x, jmeno, img)
-                # cv2.imwrite("./pokemoni/pkm " + str(x+1) + " " + str(jmeno) + ".png", img)
+                    # print("Pokemon #", (x + 1), " má hodnoty:", novy_pokemon.jmeno)
+                    vypis_prubeh_prejmenovani(x, novy_pokemon.jmeno, img)
+                # cv2.imwrite("./pokemoni/pkm " + str(x+1) + " " + str(novy_pokemon.jmeno) + ".png", img)
 
                 klik_do_stredu()
-                btn_prejmenuj_pokemona(jmeno)
+                btn_prejmenuj_pokemona(novy_pokemon.jmeno)
                 swipni_doprava()
                 time.sleep(5)
 
@@ -312,8 +321,8 @@ def start_programu():
                         "Odhadovaný čas konce za" + str(datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu))))
 
                     # print("Hotovo pokémonů:", x + 1)
-                    # print("Pokemon #", (x + 1), " má hodnoty:", jmeno)
-                    vypis_prubeh_prejmenovani(x, jmeno, img)
+                    # print("Pokemon #", (x + 1), " má hodnoty:", novy_pokemon.jmeno)
+                    vypis_prubeh_prejmenovani(x, novy_pokemon.jmeno, img)
             else:
                 # print("Přeskakuji pokemona #", (x + 1), " (nelze jej přejmenovat) na dalšího pokemona")
                 napis_stav("Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
@@ -389,35 +398,48 @@ def start_programu():
 
     extra_prejmenovani = IntVar()
     extra_prejmenovani.set(0)
+    extra_prejmenovani_posix = IntVar()
+    extra_prejmenovani_posix.set(1)
 
     def stav_extra_prejmenovat():
         if extra_prejmenovani.get() == 0:
             hranice_na_prejmenovani.config(state='disabled')
             extra_prejmenovat_na.config(state='disabled')
+            extra_prejmenovat_na_posix.config(state='disabled')
         else:
             hranice_na_prejmenovani.config(state='normal')
             extra_prejmenovat_na.config(state='normal')
+            extra_prejmenovat_na_posix.config(state='normal')
 
     Checkbutton(sekce_prejmenovat, text="Přejmenovat pokémona s % nižším než", variable=extra_prejmenovani,
                 command=stav_extra_prejmenovat).pack()
     hranice_na_prejmenovani = Scale(sekce_prejmenovat, from_=0, to=100, orient=HORIZONTAL)
-    hranice_na_prejmenovani.set(82)
+    hranice_na_prejmenovani.set(80)  # hranice pro 2*
     hranice_na_prejmenovani.pack(fill=X, padx=10)
     Label(sekce_prejmenovat, text="přejmovat na").pack()
 
     hodnota_extra_prejmenovat_na = StringVar()
 
-    def maximalne_dvanact(*args):
+    def maximalne_znaku(*args):
         hodnota = extra_prejmenovat_na.get()
-        if len(hodnota) > 12:
-            extra_prejmenovat_na.delete(0, END)
-            extra_prejmenovat_na.insert(0, hodnota[:12])
+        if extra_prejmenovani_posix.get() == 1:
+            if len(hodnota) > 8:
+                extra_prejmenovat_na.delete(0, END)
+                extra_prejmenovat_na.insert(0, hodnota[:8])
+        else:
+            if len(hodnota) > 12:
+                extra_prejmenovat_na.delete(0, END)
+                extra_prejmenovat_na.insert(0, hodnota[:12])
         return
 
-    hodnota_extra_prejmenovat_na.trace_add("write", maximalne_dvanact)
+    hodnota_extra_prejmenovat_na.trace_add("write", maximalne_znaku)
 
     extra_prejmenovat_na = Entry(sekce_prejmenovat, textvariable=hodnota_extra_prejmenovat_na)
     extra_prejmenovat_na.pack(fill=X, padx=10, pady=5)
+
+    extra_prejmenovat_na_posix = Checkbutton(sekce_prejmenovat, text="přidat na konec % (např. 97%)",
+                                             variable=extra_prejmenovani_posix, command=stav_extra_prejmenovat)
+    extra_prejmenovat_na_posix.pack()
 
     stav_extra_prejmenovat()
 
