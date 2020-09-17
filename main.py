@@ -157,7 +157,7 @@ def start_programu():
                     # jde se přejmovávat pokud splňuje nastavený limit
                     if int(hranice_na_prejmenovani.get()) >= int(procento):
                         if extra_prejmenovani_posix.get() == 1:
-                            return extra_prejmenovat_na.get() + " " + str(procento) + "%"
+                            return extra_prejmenovat_na.get() + "-" + str(procento) + "%"
                         return extra_prejmenovat_na.get()
                 return text
 
@@ -274,7 +274,10 @@ def start_programu():
     def spust_prejmenovani():
         # btn_uprostred()
         # btn_seznam_pokemonu()
-        pocet_pokemonu = int(zjisti_pocet_pokemonu())
+        if kolik_prejmenovat.get() == 0:
+            pocet_pokemonu = int(zjisti_pocet_pokemonu())
+        else:
+            pocet_pokemonu = int(kolik_prejmenovat.get())
         # print("Maximálně počet pokémonů k přejmenování:", pocet_pokemonu)
         napis_stav("Maximálně počet pokémonů k přejmenování:" + str(pocet_pokemonu))
         btn_pokemon()
@@ -286,7 +289,7 @@ def start_programu():
 
         def vypis_prubeh_prejmenovani(x, jmeno, img):
             napis_stav("Původní jméno pokémona #" + str(x + 1) + " " + najdi_jmeno_pokemona(img))
-            if extra_prejmenovat_na.get() == jmeno:
+            if hranice_na_prejmenovani.get() >= int(novy_pokemon.procento) :
                 napis_stav(
                     "Pokemon #" + str(x + 1) + " splnil kritérium pro extra přejmenování. Přejmenovávám na " + jmeno)
             else:
@@ -309,6 +312,10 @@ def start_programu():
 
                 klik_do_stredu()
                 btn_prejmenuj_pokemona(novy_pokemon.jmeno)
+                # kontrola přejmenování pokémona
+                img = adb_printsreen()
+                napis_stav("Nové jméno pokémona #" + str(x + 1) + " " + najdi_jmeno_pokemona(img))
+
                 swipni_doprava()
                 time.sleep(5)
 
