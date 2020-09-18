@@ -289,7 +289,7 @@ def start_programu():
 
         def vypis_prubeh_prejmenovani(x, jmeno, img):
             napis_stav("Původní jméno pokémona #" + str(x + 1) + " " + najdi_jmeno_pokemona(img))
-            if hranice_na_prejmenovani.get() >= int(novy_pokemon.procento) :
+            if hranice_na_prejmenovani.get() >= int(novy_pokemon.procento):
                 napis_stav(
                     "Pokemon #" + str(x + 1) + " splnil kritérium pro extra přejmenování. Přejmenovávám na " + jmeno)
             else:
@@ -311,10 +311,25 @@ def start_programu():
                 # cv2.imwrite("./pokemoni/pkm " + str(x+1) + " " + str(novy_pokemon.jmeno) + ".png", img)
 
                 klik_do_stredu()
-                btn_prejmenuj_pokemona(novy_pokemon.jmeno)
-                # kontrola přejmenování pokémona
-                img = adb_printsreen()
-                napis_stav("Nové jméno pokémona #" + str(x + 1) + " " + najdi_jmeno_pokemona(img))
+
+                while (True):
+                    btn_prejmenuj_pokemona(novy_pokemon.jmeno)  # přejmenování pokémona
+
+                    # kontrola přejmenování pokémona
+                    img = adb_printsreen()
+                    nove_jmeno = najdi_jmeno_pokemona(img)
+                    napis_stav("Nové jméno pokémona #" + str(x + 1) + " " + nove_jmeno)
+                    if novy_pokemon.jmeno == nove_jmeno:
+                        # print("jmena jsou stejna")
+                        break
+                    # print("jmena se liší") # opakuj přejmenování když se jména liší
+
+                staty_pokemona = "* : {}\n% : {}\nATT : {}\nDEF : {}\nHP : {}".format(novy_pokemon.hvezd,
+                                                                                      novy_pokemon.procento,
+                                                                                      novy_pokemon.att_power,
+                                                                                      novy_pokemon.def_power,
+                                                                                      novy_pokemon.hp_power)
+                Label(gui, bg="yellow", text=staty_pokemona).grid(row=0, column=2, pady=5, padx=5)
 
                 swipni_doprava()
                 time.sleep(5)

@@ -36,9 +36,9 @@ class Pokemon:
         return "šedá zóna"
 
     def vypis_informace(self):
-        print("jméno=", self.jmeno)
-        print("att=", self.att_power)
-        print("def=", self.def_power)
-        print("hp=", self.hp_power)
-        print("%=", self.procento)
-        print("hvezd=", self.hvezd)
+        print("jméno:", self.jmeno)
+        print("att:", self.att_power)
+        print("def:", self.def_power)
+        print("hp:", self.hp_power)
+        print("%:", self.procento)
+        print("*:", self.hvezd)
