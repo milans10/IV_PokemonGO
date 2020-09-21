@@ -24,11 +24,11 @@ class Pokemon:
         # 4 * 100 %
         if self.procento <= 48.9:
             return "0*"
-        elif (self.procento >= 51.1) & (self.procento < 64.4):
+        elif (self.procento >= 51.1) & (self.procento <= 64.4):
             return "1*"
-        elif (self.procento >= 66.7) & (self.procento < 80):
+        elif (self.procento >= 66.7) & (self.procento <= 80):
             return "2*"
-        elif (self.procento >= 82.2) & (self.procento < 97.8):
+        elif (self.procento >= 82.2) & (self.procento <= 97.8):
             return "3*"
         elif (self.procento == 100):
             return "4*"
