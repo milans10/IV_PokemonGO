@@ -2,19 +2,16 @@
 
 #  Copyright (c) 2020. Created by Milan Svarc
 
-import datetime
-import json
-import subprocess
-import threading
-import time
+
 # Form implementation generated from reading ui file '.\PoGoAppka.ui'
 #
 # Created by: PyQt5 UI code generator 5.13.2
 #
 # WARNING! All changes made in this file will be lost!
-from datetime import time
+import datetime
+import threading
+import time
 from tkinter import *
-from typing import re
 
 import cv2
 import numpy as np
@@ -22,30 +19,11 @@ import pytesseract
 from PIL import Image
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-import konstanty
+import main
 from pokemon import Pokemon
 
 
 class Ui_MainWindow(object):
-
-    def spust_adb_prikaz(self, text, sleep_time=2):
-        subprocess.Popen(konstanty.ADB + text + " &")  # swipe o jeden řádek pokemonů
-        time.sleep(sleep_time)
-
-    def adb_printsreen(self):
-        pipe = subprocess.Popen("adb shell screencap -p &",
-                                stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE, shell=True)
-        image_bytes = pipe.stdout.read().replace(b'\r\n', b'\n')
-        return cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
-
-    def vyfot_okno(self):
-        printscreen = self.adb_printsreen()
-
-        cv2.imwrite("./IMAGE1.png", printscreen)  # Save screenshot
-        # cv2.namedWindow("PokemonGO snímač", cv2.WINDOW_AUTOSIZE)  # Create window with freedom of dimensions
-        ims = cv2.resize(printscreen, (300, 600))  # Resize image
-        cv2.imshow("PokemonGOsnimac", ims)  # Show image
 
     def ukaz_printscreen_na_boku(self, fotka):
         photo2 = cv2.cvtColor(fotka, cv2.COLOR_BGR2RGB)
@@ -59,35 +37,10 @@ class Ui_MainWindow(object):
         # img_bg2 = Label(master=self.lbl_printscreen, image=imgtk)
         # img_bg2.grid(row=6, column=2, rowspan=20, pady=5, padx=5)
 
-    def vrat_cislo_v_kruhu(cislo=0):
-        # u"\u2460" jednicka v kolečku
-        # ①
-        # ipa = '"\\u2460"'
-        cislo = int(cislo)
-        if (cislo > 0) & (cislo < 11):
-            cislo = 2459 + cislo
-        elif cislo == 11:
-            cislo = "246A"
-        elif cislo == 12:
-            cislo = "246B"
-        elif cislo == 13:
-            cislo = "246C"
-        elif cislo == 14:
-            cislo = "246D"
-        elif cislo == 15:
-            cislo = "246E"
-        else:
-            cislo = "24EA"
-
-        ipa = '"\\u' + str(cislo) + '"'
-        cislo = json.loads(ipa)
-        print(cislo)
-        return cislo
-
     def najdi_staty(self):
         global prostredek, crop_img, stredy
 
-        fotka = self.adb_printsreen()
+        fotka = main.adb_printsreen()
         self.ukaz_printscreen_na_boku(fotka)  # ukáže fotka na boku okna
         img_gray = cv2.cvtColor(fotka, cv2.COLOR_BGR2GRAY)
         template = cv2.imread('img_statsIV.png', 0)
@@ -172,63 +125,6 @@ class Ui_MainWindow(object):
             except TypeError:
                 print("Nepovedlo se načíst data pokemona... Není vidět tabulka s hodnotami")
                 nacteno = True
-
-    def swipni_doprava(self):
-        # swipe o jeden řádek pokemonů
-        self.spust_adb_prikaz("swipe 940 1080 140 1080 1500")
-
-    def swipni_pokemony(self):
-        # swipe o jeden řádek pokemonů
-        self.spust_adb_prikaz("swipe 140 1296 140 1000 1500")
-
-    def btn_prejmenuj_pokemona(self, nove_jmeno=""):
-        self.spust_adb_prikaz("tap 540 915")  # tapnutí na TLAČÍTKO přejmenování pokémona
-
-        for ciselnik in range(13):
-            self.spust_adb_prikaz("keyevent 67", 0)  # klávesa DELETE
-
-        time.sleep(2)
-        if len(nove_jmeno) > 12:
-            prikaz = "keyboard text 'TOO LONG'"
-        else:
-            prikaz = "keyboard text '" + nove_jmeno + "'"
-        self.spust_adb_prikaz(prikaz, 3)
-
-        # tlačítko HOTOVO na virtuální klávesnici
-        self.spust_adb_prikaz("tap 990 2097")
-
-        # tlačítko OK pro potvrzení nového jména
-        self.spust_adb_prikaz("tap 540 1170", 3)
-
-    def btn_uprostred(self):
-        # PROSTŘEDNÍ TLAČÍTKO tapnutí
-        self.spust_adb_prikaz("tap 551 2026")
-
-    def btn_seznam_pokemonu(self):
-        # SBÍRKA POKEMONŮ TLAČÍTKO tapnutí
-        self.spust_adb_prikaz("tap 238 1862")
-
-    def btn_menu_pokemonu(self):
-        # ŘAZENÍ POKEMONŮ(MENU POKEMONA) TLAČÍTKO tapnutí
-        self.spust_adb_prikaz("tap 933 2025")
-
-    def btn_appraise(self):
-        # APPRAISE TLAČÍTKO tapnutí
-        self.spust_adb_prikaz("tap 750 1617")
-
-    def btn_pokemon(self, pozice_na_radku=1):
-        # pokemon políčko je X 330 na Y 390
-        if pozice_na_radku > 3:
-            pozice_na_radku = 3  # více než 3 pokemoni na řádku nejsou
-        souradnice_x = 198 + ((pozice_na_radku - 1) * 330)
-        prikaz = "tap " + str(souradnice_x) + " 612"
-
-        self.spust_adb_prikaz(prikaz)  # 1.POKEMON VLEVO NAHORE tapnutí
-
-    def klik_do_stredu(self):
-        # tapnutí do stredu obrazovky
-        self.spust_adb_prikaz("tap 540 1080", 3)
-
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -1198,7 +1094,7 @@ class Ui_MainWindow(object):
 
     # v daném výřezu zjisti počty pokemonu xx / yy, v případě filtru najde znak Q
     def zjisti_pocet_pokemonu(self):
-        image = self.adb_printsreen()
+        image = main.adb_printsreen()
         crop_img = image[200:250, 115:465]
         pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
         text = pytesseract.image_to_string(crop_img)
@@ -1230,28 +1126,6 @@ class Ui_MainWindow(object):
         self.text_zona.insertPlainText(text + "\n")
         self.text_zona.setReadOnly(True)
 
-    def najdi_jmeno_pokemona(self, screenshot):
-        img_rgb = screenshot
-        img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-        template = cv2.imread('btn_rename.png', 0)
-        w, h = template.shape[::-1]
-
-        res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
-        threshold = 0.8
-        loc = np.where(res >= threshold)
-
-        if not loc[0].size > 0:
-            text = "Jméno nerozpoznáno"
-            return text
-        else:
-            osa_Y = min(loc[0])
-            osa_X = max(loc[1])
-            crop_img = img_gray[osa_Y:osa_Y + h + 40, 50:(osa_X)]
-            pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-            text = pytesseract.image_to_string(crop_img)
-            text = re.sub('[^0-9a-zA-Z%-]', '', text)
-            return text
-
     @staticmethod
     def lze_prejmenovat(img_rgb):
         img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
@@ -1269,15 +1143,15 @@ class Ui_MainWindow(object):
             return True
 
     def spust_prejmenovani(self):
-        # btn_uprostred()
-        # btn_seznam_pokemonu()
+        # main.btn_uprostred()
+        # main.btn_seznam_pokemonu()
         if self.spn_kolik_prejmenovat.value() == 0:
             pocet_pokemonu = int(self.zjisti_pocet_pokemonu())
         else:
             pocet_pokemonu = int(self.spn_kolik_prejmenovat.value())
         # print("Maximálně počet pokémonů k přejmenování:", pocet_pokemonu)
         self.napis_stav("Maximálně počet pokémonů k přejmenování:" + str(pocet_pokemonu))
-        self.btn_pokemon()
+        main.btn_pokemon()
 
         start = time.time()
         # print("Čas začátku: ", time.strftime('%H:%M:%S', time.localtime(start)))
@@ -1285,7 +1159,7 @@ class Ui_MainWindow(object):
         doba_trvani = 0
 
         def vypis_prubeh_prejmenovani(x, jmeno, img):
-            puvodni_jmeno = self.najdi_jmeno_pokemona(img)
+            puvodni_jmeno = main.najdi_jmeno_pokemona(img)
             self.napis_stav("Původní jméno pokémona #" + str(x + 1) + " " + puvodni_jmeno)
             if (self.chckbx_preskocit.isChecked()) & (len(self.input_preskocit_prefix.text()) > 0):
                 delka = len(self.input_preskocit_prefix.text())
@@ -1301,29 +1175,29 @@ class Ui_MainWindow(object):
             return 0
 
         for x in range(pocet_pokemonu):
-            img = self.adb_printsreen()
+            img = main.adb_printsreen()
             global novy_pokemon
             novy_pokemon = Pokemon()
 
             if self.lze_prejmenovat(img):
-                self.btn_menu_pokemonu()
-                self.btn_appraise()
-                self.klik_do_stredu()
+                main.btn_menu_pokemonu()
+                main.btn_appraise()
+                main.klik_do_stredu()
                 novy_pokemon.jmeno = self.zjisti_atributy_pokemona(x)
                 # if doba_trvani != 0:
                 # print("Pokemon #", (x + 1), " má hodnoty:", novy_pokemon.jmeno)
                 stav_prejmenovani = vypis_prubeh_prejmenovani(x, novy_pokemon.jmeno, img)
                 # cv2.imwrite("./pokemoni/pkm " + str(x+1) + " " + str(novy_pokemon.jmeno) + ".png", img)
 
-                self.klik_do_stredu()
+                main.klik_do_stredu()
 
                 if stav_prejmenovani == 0:
                     while (True):
-                        self.btn_prejmenuj_pokemona(novy_pokemon.jmeno)  # přejmenování pokémona
+                        main.btn_prejmenuj_pokemona(novy_pokemon.jmeno)  # přejmenování pokémona
 
                         # kontrola přejmenování pokémona
-                        img = self.adb_printsreen()
-                        nove_jmeno = self.najdi_jmeno_pokemona(img)
+                        img = main.adb_printsreen()
+                        nove_jmeno = main.najdi_jmeno_pokemona(img)
                         self.napis_stav("Nové jméno pokémona #" + str(x + 1) + " " + nove_jmeno)
                         if novy_pokemon.jmeno == nove_jmeno:
                             # print("jmena jsou stejna")
@@ -1336,7 +1210,7 @@ class Ui_MainWindow(object):
                                                                                       novy_pokemon.def_power,
                                                                                       novy_pokemon.hp_power)
                 self.lbl_staty_pokemona.setText(staty_pokemona)
-                self.swipni_doprava()
+                main.swipni_doprava()
                 time.sleep(5)
 
                 if doba_trvani == 0:
@@ -1353,7 +1227,7 @@ class Ui_MainWindow(object):
             else:
                 # print("Přeskakuji pokemona #", (x + 1), " (nelze jej přejmenovat) na dalšího pokemona")
                 self.napis_stav("Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
-                self.swipni_doprava()
+                main.swipni_doprava()
                 time.sleep(5)
             # kontrola na ukončení přejmenovávání
             global ukonci_vlakno
@@ -1366,7 +1240,7 @@ class Ui_MainWindow(object):
         # print("Čas ukončení: ", time.strftime('%H:%M:%S', time.localtime(konec)), "\t doba trvání", datetime.timedelta(seconds=(konec - start)))
         self.napis_stav("Čas ukončení: " + time.strftime('%H:%M:%S', time.localtime(konec)) + "\t doba trvání " + str(
             datetime.timedelta(seconds=(konec - start))))
-        self.btn_uprostred()
+        main.btn_uprostred()
         # print("Konec")
         self.napis_stav("Konec")
 
@@ -1391,7 +1265,6 @@ class Ui_MainWindow(object):
     def konec(self):
         # window.destroy()
         sys.exit()
-
 
 
 def zobrazUI():
