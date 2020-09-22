@@ -1050,6 +1050,7 @@ class Ui_MainWindow(object):
         self.lbl_staty_pokemona.setScaledContents(True)
         self.lbl_staty_pokemona.setWordWrap(True)
         self.lbl_staty_pokemona.setObjectName("lbl_staty_pokemona")
+        self.lbl_staty_pokemona.setAlignment(QtCore.Qt.AlignLeft)
         self.vpravo.addWidget(self.lbl_staty_pokemona)
         self.lbl_printscreen = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
@@ -1126,6 +1127,11 @@ class Ui_MainWindow(object):
         self.text_zona.insertPlainText(text + "\n")
         self.text_zona.setReadOnly(True)
 
+    def napis_stav_maly_box(self, text):
+        self.text_zona2.setReadOnly(False)
+        self.text_zona2.insertPlainText(text + "\n")
+        self.text_zona2.setReadOnly(True)
+
     @staticmethod
     def lze_prejmenovat(img_rgb):
         img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
@@ -1150,12 +1156,12 @@ class Ui_MainWindow(object):
         else:
             pocet_pokemonu = int(self.spn_kolik_prejmenovat.value())
         # print("Maximálně počet pokémonů k přejmenování:", pocet_pokemonu)
-        self.napis_stav("Maximálně počet pokémonů k přejmenování:" + str(pocet_pokemonu))
+        self.napis_stav("Počet pokémonů k přejmenování: ".upper() + str(pocet_pokemonu))
         main.btn_pokemon()
 
         start = time.time()
         # print("Čas začátku: ", time.strftime('%H:%M:%S', time.localtime(start)))
-        self.napis_stav("Čas začátku: " + time.strftime('%H:%M:%S', time.localtime(start)))
+        self.napis_stav_maly_box("Čas začátku: ".upper() + time.strftime('%H:%M:%S', time.localtime(start)))
         doba_trvani = 0
 
         def vypis_prubeh_prejmenovani(x, jmeno, img):
@@ -1184,6 +1190,12 @@ class Ui_MainWindow(object):
                 main.btn_appraise()
                 main.klik_do_stredu()
                 novy_pokemon.jmeno = self.zjisti_atributy_pokemona(x)
+                staty_pokemona = "* : {}\n% : {}\nATT : {}\nDEF : {}\nHP : {}".format(novy_pokemon.hvezd,
+                                                                                      novy_pokemon.procento,
+                                                                                      novy_pokemon.att_power,
+                                                                                      novy_pokemon.def_power,
+                                                                                      novy_pokemon.hp_power)
+                self.lbl_staty_pokemona.setText(staty_pokemona)
                 # if doba_trvani != 0:
                 # print("Pokemon #", (x + 1), " má hodnoty:", novy_pokemon.jmeno)
                 stav_prejmenovani = vypis_prubeh_prejmenovani(x, novy_pokemon.jmeno, img)
@@ -1204,28 +1216,20 @@ class Ui_MainWindow(object):
                             break
                         # print("jmena se liší") # opakuj přejmenování když se jména liší
 
-                staty_pokemona = "* : {}\n% : {}\nATT : {}\nDEF : {}\nHP : {}".format(novy_pokemon.hvezd,
-                                                                                      novy_pokemon.procento,
-                                                                                      novy_pokemon.att_power,
-                                                                                      novy_pokemon.def_power,
-                                                                                      novy_pokemon.hp_power)
-                self.lbl_staty_pokemona.setText(staty_pokemona)
+
                 main.swipni_doprava()
                 time.sleep(5)
 
                 if doba_trvani == 0:
                     end = time.time()
                     doba_trvani = (end - start) // 1
-                    # print("odhadovaný čas konce za", datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu)))
-                    # print("Odhadovaný čas konce za", datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu)))
-                    self.napis_stav(
-                        "Odhadovaný čas konce za " + str(datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu))))
+                    self.napis_stav_maly_box("Odhadovaný čas konce za: ".upper() + str(
+                        datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu))))
 
                     # print("Hotovo pokémonů:", x + 1)
                     # print("Pokemon #", (x + 1), " má hodnoty:", novy_pokemon.jmeno)
                     # stav_prejmenovani = vypis_prubeh_prejmenovani(x, novy_pokemon.jmeno, img)
             else:
-                # print("Přeskakuji pokemona #", (x + 1), " (nelze jej přejmenovat) na dalšího pokemona")
                 self.napis_stav("Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
                 main.swipni_doprava()
                 time.sleep(5)
@@ -1237,12 +1241,10 @@ class Ui_MainWindow(object):
                 break
 
         konec = time.time()
-        # print("Čas ukončení: ", time.strftime('%H:%M:%S', time.localtime(konec)), "\t doba trvání", datetime.timedelta(seconds=(konec - start)))
-        self.napis_stav("Čas ukončení: " + time.strftime('%H:%M:%S', time.localtime(konec)) + "\t doba trvání " + str(
-            datetime.timedelta(seconds=(konec - start))))
+        self.napis_stav_maly_box("Čas ukončení: ".upper() + time.strftime('%H:%M:%S', time.localtime(konec)))
+        self.napis_stav_maly_box("doba trvání: ".upper() + str(datetime.timedelta(seconds=int(konec - start))))
         main.btn_uprostred()
-        # print("Konec")
-        self.napis_stav("Konec")
+        self.napis_stav("KONEC")
 
     def zacni_prejmenovavat(self):
         global t1, ukonci_vlakno
