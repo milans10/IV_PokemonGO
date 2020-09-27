@@ -6,6 +6,7 @@ import time
 
 import cv2
 import numpy as np
+import pyglet
 import pytesseract
 
 import appkaUI
@@ -150,4 +151,12 @@ def klik_do_stredu():
 
 if __name__ == '__main__':
     # print(subprocess.Popen("adb shell wm size"))  # Physical size my phone: 1080x2160
+
+    # Načtení fontu
+    pyglet.font.add_file('./JetBrainsMono-Regular.ttf')
+    pyglet.font.load('JetBrains Mono')
+
+    # zapnutí ADB deamona
+    adb = subprocess.Popen(['adb.exe', 'start-server'])
+
     appkaUI.zobrazUI()

@@ -16,26 +16,36 @@ from tkinter import *
 import cv2
 import numpy as np
 import pytesseract
-from PIL import Image
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QLabel, QGraphicsDropShadowEffect
 
 import main
 from pokemon import Pokemon
 
 
+class ImageWidgetWithRatio(QLabel):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setScaledContents(True)
+
+    def hasHeightForWidth(self):
+        return self.pixmap() is not None
+
+    def heightForWidth(self, w):
+        if self.pixmap():
+            return int(w * (self.pixmap().height() / self.pixmap().width()))
+
+
 class Ui_MainWindow(object):
 
     def ukaz_printscreen_na_boku(self, fotka):
-        photo2 = cv2.cvtColor(fotka, cv2.COLOR_BGR2RGB)
-        photo2 = Image.fromarray(photo2)
-        photo2 = photo2.resize((200, 400), Image.ANTIALIAS)
-
-        # nutné opravit !!!
-        # global imgtk
-        # imgtk = ImageTk.PhotoImage(image=photo2)
-        # self.lbl_printscreen.setPixmap(ims)
-        # img_bg2 = Label(master=self.lbl_printscreen, image=imgtk)
-        # img_bg2.grid(row=6, column=2, rowspan=20, pady=5, padx=5)
+        RGBarray = cv2.cvtColor(fotka, cv2.COLOR_BGR2RGB)
+        width, height, channels = RGBarray.shape
+        image = QtGui.QImage(RGBarray.data, height, width, 3 * height, QtGui.QImage.Format_RGB888)
+        pixmap = QtGui.QPixmap(image)
+        self.lbl_printscreen.setScaledContents(True)
+        self.lbl_printscreen.setPixmap(pixmap)
 
     def najdi_staty(self):
         global prostredek, crop_img, stredy
@@ -133,7 +143,7 @@ class Ui_MainWindow(object):
         icon.addPixmap(QtGui.QPixmap("./img_pokeball.png"), QtGui.QIcon.Normal,
                        QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
-        MainWindow.setStyleSheet("border-image: url(./img_bg.png);")
+        MainWindow.setStyleSheet("border-image: url(./img_bg.jpg);")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)
@@ -151,9 +161,9 @@ class Ui_MainWindow(object):
         self.btn_prejmenovat.setMaximumSize(QtCore.QSize(300, 16777215))
         font = QtGui.QFont()
         font.setFamily("JetBrains Mono")
+        font.setPointSize(12)
         self.btn_prejmenovat.setFont(font)
-        self.btn_prejmenovat.setStyleSheet("border-image: none;\n"
-                                           "")
+        self.btn_prejmenovat.setStyleSheet("border-image: none;\n")
         self.btn_prejmenovat.setObjectName("btn_prejmenovat")
         self.vlevo.addWidget(self.btn_prejmenovat)
         self.btn_prejmenovat.clicked.connect(self.zacni_prejmenovavat)
@@ -161,6 +171,8 @@ class Ui_MainWindow(object):
         self.grpbx_kolik = QtWidgets.QGroupBox(self.centralwidget)
         self.grpbx_kolik.setMinimumSize(QtCore.QSize(0, 100))
         self.grpbx_kolik.setMaximumSize(QtCore.QSize(300, 150))
+        font.setPointSize(8)
+        self.grpbx_kolik.setFont(font)
         palette = QtGui.QPalette()
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
@@ -209,7 +221,7 @@ class Ui_MainWindow(object):
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Window, brush)
         self.grpbx_kolik.setPalette(palette)
         self.grpbx_kolik.setStyleSheet("border-image: none;\n"
-                                       "background: rgba(255, 255, 255, 0.3);")
+                                       "background: rgba(0, 0, 0, 0.5);")
         self.grpbx_kolik.setObjectName("grpbx_kolik")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.grpbx_kolik)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
@@ -336,9 +348,11 @@ class Ui_MainWindow(object):
         self.spn_kolik_prejmenovat.setPalette(palette)
         font = QtGui.QFont()
         font.setFamily("JetBrains Mono")
+        font.setPointSize(12)
         self.spn_kolik_prejmenovat.setFont(font)
         self.spn_kolik_prejmenovat.setAutoFillBackground(False)
-        self.spn_kolik_prejmenovat.setStyleSheet("border-image: none;color: black;")
+        self.spn_kolik_prejmenovat.setStyleSheet(
+            "QSpinBox{border : 1px solid white; color: white; background-color: rgba(255,255,255,0);}")
         self.spn_kolik_prejmenovat.setObjectName("spn_kolik_prejmenovat")
         self.verticalLayout_3.addWidget(self.spn_kolik_prejmenovat)
         self.vlevo.addWidget(self.grpbx_kolik)
@@ -349,7 +363,9 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.grpbx_prejmenovat.sizePolicy().hasHeightForWidth())
         self.grpbx_prejmenovat.setSizePolicy(sizePolicy)
         self.grpbx_prejmenovat.setMinimumSize(QtCore.QSize(0, 150))
-        self.grpbx_prejmenovat.setMaximumSize(QtCore.QSize(300, 150))
+        self.grpbx_prejmenovat.setMaximumSize(QtCore.QSize(300, 300))
+        font.setPointSize(8)
+        self.grpbx_prejmenovat.setFont(font)
         palette = QtGui.QPalette()
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
@@ -389,9 +405,10 @@ class Ui_MainWindow(object):
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Window, brush)
         self.grpbx_prejmenovat.setPalette(palette)
         self.grpbx_prejmenovat.setStyleSheet("border-image: none;\n"
-                                             "background: rgba(255, 255, 255, 0.3);")
+                                             "background: rgba(0, 0, 0, 0.5);")
         self.grpbx_prejmenovat.setObjectName("grpbx_prejmenovat")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.grpbx_prejmenovat)
+        self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName("verticalLayout")
         self.chckbx_prejmenovat = QtWidgets.QCheckBox(self.grpbx_prejmenovat)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -506,9 +523,13 @@ class Ui_MainWindow(object):
         self.spn_hranice_prejmenovani.setPalette(palette)
         font = QtGui.QFont()
         font.setFamily("JetBrains Mono")
+        font.setPointSize(12)
         self.spn_hranice_prejmenovani.setFont(font)
         self.spn_hranice_prejmenovani.setAutoFillBackground(False)
-        self.spn_hranice_prejmenovani.setStyleSheet("border-image: none;color:black;")
+        # self.spn_hranice_prejmenovani.setStyleSheet("border-image: none;color:black;")
+        self.spn_hranice_prejmenovani.setStyleSheet(
+            "QSpinBox{border : 1px solid white; color: white; background-color: rgba(255,255,255,0);}")
+
         self.spn_hranice_prejmenovani.setProperty("value", 80)
         self.spn_hranice_prejmenovani.setObjectName("spn_hranice_prejmenovani")
         self.verticalLayout.addWidget(self.spn_hranice_prejmenovani)
@@ -619,7 +640,9 @@ class Ui_MainWindow(object):
         self.input_prejmenovat_na.setPalette(palette)
         font = QtGui.QFont()
         font.setFamily("JetBrains Mono")
+        font.setPointSize(12)
         self.input_prejmenovat_na.setFont(font)
+        font.setPointSize(8)
         self.input_prejmenovat_na.setStyleSheet("border-image: none;\n"
                                                 "background: rgba(255, 255, 255, 0);")
         self.input_prejmenovat_na.setObjectName("input_prejmenovat_na")
@@ -675,7 +698,8 @@ class Ui_MainWindow(object):
         font.setFamily("JetBrains Mono")
         self.chckbx_prejmenovat_posix.setFont(font)
         self.chckbx_prejmenovat_posix.setStyleSheet("border-image: none;\n"
-                                                    "background: rgba(255, 255, 255, 0);")
+                                                    "background: rgba(255, 255, 255, 0.0);")
+
         self.chckbx_prejmenovat_posix.setChecked(True)
         self.chckbx_prejmenovat_posix.setAutoExclusive(False)
         self.chckbx_prejmenovat_posix.setObjectName("chckbx_prejmenovat_posix")
@@ -684,6 +708,7 @@ class Ui_MainWindow(object):
         self.grpbx_preskocit = QtWidgets.QGroupBox(self.centralwidget)
         self.grpbx_preskocit.setMinimumSize(QtCore.QSize(0, 100))
         self.grpbx_preskocit.setMaximumSize(QtCore.QSize(300, 100))
+        self.grpbx_preskocit.setFont(font)
         palette = QtGui.QPalette()
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
@@ -732,7 +757,7 @@ class Ui_MainWindow(object):
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Window, brush)
         self.grpbx_preskocit.setPalette(palette)
         self.grpbx_preskocit.setStyleSheet("border-image: none;\n"
-                                           "background: rgba(255, 255, 255, 0.3);")
+                                           "background: rgba(0, 0, 0, 0.5);")
         self.grpbx_preskocit.setObjectName("grpbx_preskocit")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.grpbx_preskocit)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
@@ -850,7 +875,9 @@ class Ui_MainWindow(object):
         self.input_preskocit_prefix.setPalette(palette)
         font = QtGui.QFont()
         font.setFamily("JetBrains Mono")
+        font.setPointSize(12)
         self.input_preskocit_prefix.setFont(font)
+        font.setPointSize(8)
         self.input_preskocit_prefix.setStyleSheet("border-image: none;\n"
                                                   "background: rgba(255, 255, 255, 0);")
         self.input_preskocit_prefix.setMaxLength(15)
@@ -892,11 +919,13 @@ class Ui_MainWindow(object):
         self.text_zona2 = QtWidgets.QTextEdit(self.centralwidget)
         self.text_zona2.setMaximumSize(QtCore.QSize(300, 16777215))
         self.text_zona2.setStyleSheet("border-image: none;\n"
-                                      "background: rgba(255, 255, 255, 0.0);\n"
-                                      "color: yellow;")
+                                      "background: rgba(0, 0, 0, 0.5);\n"
+                                      "color: white;")
         self.text_zona2.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.text_zona2.setReadOnly(True)
         self.text_zona2.setObjectName("text_zona2")
+        self.text_zona2.setFont(font)
+
         self.vlevo.addWidget(self.text_zona2)
         self.horizontalLayout.addLayout(self.vlevo)
         self.text_zona = QtWidgets.QTextEdit(self.centralwidget)
@@ -964,10 +993,12 @@ class Ui_MainWindow(object):
         self.text_zona.setPalette(palette)
         font = QtGui.QFont()
         font.setFamily("JetBrains Mono")
+        font.setPointSize(12)
         self.text_zona.setFont(font)
         self.text_zona.setStyleSheet("border-image: none;\n"
-                                     "background: rgba(255, 255, 255, 0.1);\n"
-                                     "color: yellow;")
+                                     "background: rgba(0, 0, 0, 0.5);\n"
+                                     "color: white;")
+        font.setPointSize(8)
         self.text_zona.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.text_zona.setFrameShadow(QtWidgets.QFrame.Plain)
         self.text_zona.setLineWrapColumnOrWidth(0)
@@ -1042,24 +1073,35 @@ class Ui_MainWindow(object):
         self.lbl_staty_pokemona.setPalette(palette)
         font = QtGui.QFont()
         font.setFamily("JetBrains Mono")
+        font.setBold(True)
+        font.setPointSize(12)
         self.lbl_staty_pokemona.setFont(font)
+
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(1)
+        shadow.setXOffset(1)
+        shadow.setYOffset(1)
+        self.lbl_staty_pokemona.setGraphicsEffect(shadow)
+
+        font.setPointSize(8)
         self.lbl_staty_pokemona.setStyleSheet("border-image: none;\n"
-                                              "background: rgba(255, 255, 255, 0.0);\n"
-                                              "color: yellow;")
+                                              # "background: rgba(0, 0, 0, 0.5);\n"
+                                              "color: white;")
         self.lbl_staty_pokemona.setText("")
-        self.lbl_staty_pokemona.setScaledContents(True)
-        self.lbl_staty_pokemona.setWordWrap(True)
+        # self.lbl_staty_pokemona.setScaledContents(True)
+        # self.lbl_staty_pokemona.setWordWrap(True)
         self.lbl_staty_pokemona.setObjectName("lbl_staty_pokemona")
         self.lbl_staty_pokemona.setAlignment(QtCore.Qt.AlignLeft)
         self.vpravo.addWidget(self.lbl_staty_pokemona)
-        self.lbl_printscreen = QtWidgets.QLabel(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+        self.lbl_printscreen = ImageWidgetWithRatio(self.centralwidget)
+        # QtWidgets.QLabel(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.lbl_printscreen.sizePolicy().hasHeightForWidth())
         self.lbl_printscreen.setSizePolicy(sizePolicy)
         self.lbl_printscreen.setMinimumSize(QtCore.QSize(200, 400))
-        self.lbl_printscreen.setMaximumSize(QtCore.QSize(200, 400))
+        self.lbl_printscreen.setMaximumSize(QtCore.QSize(400, 800))
         font = QtGui.QFont()
         font.setFamily("JetBrains Mono")
         self.lbl_printscreen.setFont(font)
@@ -1126,11 +1168,23 @@ class Ui_MainWindow(object):
         self.text_zona.setReadOnly(False)
         self.text_zona.insertPlainText(text + "\n")
         self.text_zona.setReadOnly(True)
+        self.text_zona.moveCursor(QtGui.QTextCursor.End)
 
     def napis_stav_maly_box(self, text):
         self.text_zona2.setReadOnly(False)
         self.text_zona2.insertPlainText(text + "\n")
         self.text_zona2.setReadOnly(True)
+        self.text_zona2.moveCursor(QtGui.QTextCursor.End)
+
+    def vymaz_text_zony(self, jakou=0):
+        # Vymaže text zóny. Defaultně bez zadaní vymaže obě.
+        if jakou == 0:
+            self.text_zona.clear()
+            self.text_zona2.clear()
+        elif jakou == 1:
+            self.text_zona.clear()
+        elif jakou == 2:
+            self.text_zona2.clear()
 
     @staticmethod
     def lze_prejmenovat(img_rgb):
@@ -1216,7 +1270,6 @@ class Ui_MainWindow(object):
                             break
                         # print("jmena se liší") # opakuj přejmenování když se jména liší
 
-
                 main.swipni_doprava()
                 time.sleep(5)
 
@@ -1253,6 +1306,7 @@ class Ui_MainWindow(object):
         t1.daemon = True
         if "Spustit přejmenovávání" == self.btn_prejmenovat.text():
             self.btn_prejmenovat.setDisabled(True)
+            self.vymaz_text_zony()
             t1.start()
             time.sleep(2)
             if t1.is_alive():
@@ -1275,4 +1329,4 @@ def zobrazUI():
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
     MainWindow.show()
-    sys.exit(app.exec_())
+    app.exec_()
