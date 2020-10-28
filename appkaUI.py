@@ -37,6 +37,22 @@ class ImageWidgetWithRatio(QLabel):
             return int(w * (self.pixmap().height() / self.pixmap().width()))
 
 
+def lze_prejmenovat(img_rgb):
+    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
+    template = cv2.imread('btn_rename.png', 0)  # výstřižek ikony pro přejmenování
+
+    res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+    threshold = 0.8
+    loc = np.where(res >= threshold)
+
+    if not loc[0].size > 0:
+        # print("Nelze přejmenovat. Tlačítko není dostupné.")
+        return False
+    else:
+        # print(min(loc[0]))
+        return True
+
+
 class Ui_MainWindow(object):
 
     def ukaz_printscreen_na_boku(self, fotka):
@@ -920,12 +936,13 @@ class Ui_MainWindow(object):
         self.text_zona2.setMaximumSize(QtCore.QSize(300, 16777215))
         self.text_zona2.setStyleSheet("border-image: none;\n"
                                       "background: rgba(0, 0, 0, 0.5);\n"
-                                      "color: white;")
+                                      "color: yellow;")
         self.text_zona2.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.text_zona2.setReadOnly(True)
         self.text_zona2.setObjectName("text_zona2")
+        font.setBold(True)
         self.text_zona2.setFont(font)
-
+        font.setBold(False)
         self.vlevo.addWidget(self.text_zona2)
         self.horizontalLayout.addLayout(self.vlevo)
         self.text_zona = QtWidgets.QTextEdit(self.centralwidget)
@@ -994,11 +1011,13 @@ class Ui_MainWindow(object):
         font = QtGui.QFont()
         font.setFamily("JetBrains Mono")
         font.setPointSize(12)
+        font.setBold(True)
         self.text_zona.setFont(font)
         self.text_zona.setStyleSheet("border-image: none;\n"
                                      "background: rgba(0, 0, 0, 0.5);\n"
                                      "color: white;")
         font.setPointSize(8)
+        font.setBold(False)
         self.text_zona.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.text_zona.setFrameShadow(QtWidgets.QFrame.Plain)
         self.text_zona.setLineWrapColumnOrWidth(0)
@@ -1186,22 +1205,6 @@ class Ui_MainWindow(object):
         elif jakou == 2:
             self.text_zona2.clear()
 
-    @staticmethod
-    def lze_prejmenovat(img_rgb):
-        img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-        template = cv2.imread('btn_rename.png', 0)  # výstřižek ikony pro přejmenování
-
-        res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
-        threshold = 0.8
-        loc = np.where(res >= threshold)
-
-        if not loc[0].size > 0:
-            # print("Nelze přejmenovat. Tlačítko není dostupné.")
-            return False
-        else:
-            # print(min(loc[0]))
-            return True
-
     def spust_prejmenovani(self):
         # main.btn_uprostred()
         # main.btn_seznam_pokemonu()
@@ -1239,7 +1242,7 @@ class Ui_MainWindow(object):
             global novy_pokemon
             novy_pokemon = Pokemon()
 
-            if self.lze_prejmenovat(img):
+            if lze_prejmenovat(img):
                 main.btn_menu_pokemonu()
                 main.btn_appraise()
                 main.klik_do_stredu()
@@ -1291,6 +1294,9 @@ class Ui_MainWindow(object):
             if ukonci_vlakno | (self.spn_kolik_prejmenovat.value() == (x + 1)):
                 self.btn_prejmenovat.setText("Spustit přejmenovávání")
                 self.btn_prejmenovat.setEnabled(True)
+                self.grpbx_kolik.setEnabled(True)
+                self.grpbx_prejmenovat.setEnabled(True)
+                self.grpbx_preskocit.setEnabled(True)
                 break
 
         konec = time.time()
@@ -1312,11 +1318,17 @@ class Ui_MainWindow(object):
             if t1.is_alive():
                 self.btn_prejmenovat.setText("Ukončit přejmenovávání")
             self.btn_prejmenovat.setEnabled(True)
+            self.grpbx_kolik.setEnabled(False)
+            self.grpbx_prejmenovat.setEnabled(False)
+            self.grpbx_preskocit.setEnabled(False)
 
         else:
             ukonci_vlakno = True
             self.btn_prejmenovat.setText("Spustit přejmenovávání")
             self.btn_prejmenovat.setDisabled(True)
+            self.grpbx_kolik.setEnabled(True)
+            self.grpbx_prejmenovat.setEnabled(True)
+            self.grpbx_preskocit.setEnabled(True)
 
     def konec(self):
         # window.destroy()
