@@ -915,6 +915,8 @@ class Ui_MainWindow(object):
                                        "")
         self.btn_vyfotit.setObjectName("btn_vyfotit")
         self.vlevo.addWidget(self.btn_vyfotit)
+        self.btn_vyfotit.clicked.connect(self.vyfotit)
+
         self.btn_konec = QtWidgets.QPushButton(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -1301,7 +1303,7 @@ class Ui_MainWindow(object):
 
         konec = time.time()
         self.napis_stav_maly_box("Čas ukončení: ".upper() + time.strftime('%H:%M:%S', time.localtime(konec)))
-        self.napis_stav_maly_box("doba trvání: ".upper() + str(datetime.timedelta(seconds=int(konec - start))))
+        self.napis_stav_maly_box("Doba trvání: ".upper() + str(datetime.timedelta(seconds=int(konec - start))))
         main.btn_uprostred()
         self.napis_stav("KONEC")
 
@@ -1329,6 +1331,9 @@ class Ui_MainWindow(object):
             self.grpbx_kolik.setEnabled(True)
             self.grpbx_prejmenovat.setEnabled(True)
             self.grpbx_preskocit.setEnabled(True)
+
+    def vyfotit(self):
+        main.vyfot_okno()
 
     def konec(self):
         # window.destroy()

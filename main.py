@@ -45,12 +45,15 @@ def spust_adb_prikaz(text, sleep_time=2):
     time.sleep(sleep_time)
 
 
-def adb_printsreen():
+def adb_printsreen(grayscale=False):
     pipe = subprocess.Popen("adb shell screencap -p &",
                             stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, shell=True)
     image_bytes = pipe.stdout.read().replace(b'\r\n', b'\n')
-    return cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+    if grayscale:
+        return cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_GRAYSCALE)
+    else:
+        return cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
 
 
 def swipni_doprava():
@@ -106,6 +109,27 @@ def najdi_jmeno_pokemona(screenshot):
         return text
 
 
+def najdi_tlacitko_appraise():
+    img = adb_printsreen(True)
+    img2 = img.copy()
+    template = cv2.imread('btn_appraise.png', 0)
+    w, h = template.shape[::-1]
+
+    img = img2.copy()
+    meth = eval('cv2.TM_CCOEFF_NORMED')
+    # Apply template Matching
+    res = cv2.matchTemplate(img, template, meth)
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+
+    top_left = max_loc
+    bottom_right = (top_left[0] + w, top_left[1] + h)
+
+    def stred_nalezu(p1, p2):
+        return ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
+
+    return stred_nalezu(top_left, bottom_right)
+
+
 def vyfot_okno():
     printscreen = adb_printsreen()
     cv2.imwrite("./IMAGE1.png", printscreen)  # Save screenshot
@@ -131,7 +155,8 @@ def btn_menu_pokemonu():
 
 def btn_appraise():
     # APPRAISE TLAČÍTKO tapnutí
-    spust_adb_prikaz("tap 750 1617")
+    souradnice = najdi_tlacitko_appraise()
+    spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
 
 
 def btn_pokemon(pozice_na_radku=1):
