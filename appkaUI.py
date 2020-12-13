@@ -1159,7 +1159,7 @@ class Ui_MainWindow(object):
     # v daném výřezu zjisti počty pokemonu xx / yy, v případě filtru najde znak Q
     def zjisti_pocet_pokemonu(self):
         image = main.adb_printsreen()
-        crop_img = image[200:250, 115:465]
+        crop_img = image[200:250, 400:660]
         pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
         text = pytesseract.image_to_string(crop_img)
         text = text.replace("(", "").replace(")", "")
