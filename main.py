@@ -109,20 +109,23 @@ def najdi_jmeno_pokemona(screenshot):
         return text
 
 
-def najdi_tlacitko_appraise():
-    img = adb_printsreen(True)
-    img2 = img.copy()
-    template = cv2.imread('btn_appraise.png', 0)
+def najdi_tlacitko(img_tlacitka):
+    img = adb_printsreen(True)  # obrazek kde budu hledat, zde screenshot obrazovky
+    template = cv2.imread(img_tlacitka, 0)  # obrazek který hledám
     w, h = template.shape[::-1]
 
-    img = img2.copy()
-    meth = eval('cv2.TM_CCOEFF_NORMED')
-    # Apply template Matching
+    meth = eval('cv2.TM_CCOEFF_NORMED')  # metoda vyhledávání
     res = cv2.matchTemplate(img, template, meth)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+    threshold = 0.7  # nastavení míry hranice rozpoznání
+    loc = np.where(res >= threshold)
 
-    top_left = max_loc
-    bottom_right = (top_left[0] + w, top_left[1] + h)
+    if len(loc[0]) > 0:  # kontrola jestli je neco nalezeno
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+        top_left = max_loc
+        bottom_right = (top_left[0] + w, top_left[1] + h)
+    else:
+        # print("nenalezeno")
+        top_left = bottom_right = (0, 0)
 
     def stred_nalezu(p1, p2):
         return ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
@@ -140,7 +143,13 @@ def vyfot_okno():
 
 def btn_uprostred():
     # PROSTŘEDNÍ TLAČÍTKO tapnutí
-    spust_adb_prikaz("tap 551 2026")
+    # spust_adb_prikaz("tap 551 2026")
+    if (x := najdi_tlacitko("btn_krizek.png")) == (0, 0):
+        if (x := najdi_tlacitko("btn_krizek2.png")) == (0, 0):
+            # nenalez
+            print("Tlačítko s křížkem narozpoznáno")
+            return
+    spust_adb_prikaz("tap " + str(x[0]) + " " + str(x[1]))
 
 
 def btn_seznam_pokemonu():
@@ -155,8 +164,9 @@ def btn_menu_pokemonu():
 
 def btn_appraise():
     # APPRAISE TLAČÍTKO tapnutí
-    souradnice = najdi_tlacitko_appraise()
-    spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
+    souradnice = najdi_tlacitko("btn_appraise.png")
+    if souradnice != (0, 0):
+        spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
 
 
 def btn_pokemon(pozice_na_radku=1):
