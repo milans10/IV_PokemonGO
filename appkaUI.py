@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#  Copyright (c) 2020. Created by Milan Svarc
+#  Copyright (c) 2021. Created by Milan Svarc
 
 
 # Form implementation generated from reading ui file '.\PoGoAppka.ui'
@@ -1208,104 +1208,107 @@ class Ui_MainWindow(object):
             self.text_zona2.clear()
 
     def spust_prejmenovani(self):
-        # main.btn_uprostred()
-        # main.btn_seznam_pokemonu()
-        if self.spn_kolik_prejmenovat.value() == 0:
-            pocet_pokemonu = int(self.zjisti_pocet_pokemonu())
-        else:
-            pocet_pokemonu = int(self.spn_kolik_prejmenovat.value())
-        # print("Maximálně počet pokémonů k přejmenování:", pocet_pokemonu)
-        self.napis_stav("Počet pokémonů k přejmenování: ".upper() + str(pocet_pokemonu))
-        main.btn_pokemon()
+        if main.btn_pokeball():
+            # tlačítko nalezeno, lze pojračovat dále
+            main.btn_seznam_pokemonu()
 
-        start = time.time()
-        # print("Čas začátku: ", time.strftime('%H:%M:%S', time.localtime(start)))
-        self.napis_stav_maly_box("Čas začátku: ".upper() + time.strftime('%H:%M:%S', time.localtime(start)))
-        doba_trvani = 0
-
-        def vypis_prubeh_prejmenovani(x, jmeno, img):
-            puvodni_jmeno = main.najdi_jmeno_pokemona(img)
-            self.napis_stav("Původní jméno pokémona #" + str(x + 1) + " " + puvodni_jmeno)
-            if (self.chckbx_preskocit.isChecked()) & (len(self.input_preskocit_prefix.text()) > 0):
-                delka = len(self.input_preskocit_prefix.text())
-                if puvodni_jmeno[0:delka] == self.input_preskocit_prefix.text():
-                    self.napis_stav("Pokemon #" + str(x + 1) + " začíná na zvolený text. Přeskakuji...")
-                    return 1
-
-            if self.spn_hranice_prejmenovani.value() >= int(novy_pokemon.procento):
-                self.napis_stav(
-                    "Pokemon #" + str(x + 1) + " splnil kritérium pro extra přejmenování. Přejmenovávám na " + jmeno)
+            if self.spn_kolik_prejmenovat.value() == 0:
+                pocet_pokemonu = int(self.zjisti_pocet_pokemonu())
             else:
-                self.napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
-            return 0
+                pocet_pokemonu = int(self.spn_kolik_prejmenovat.value())
+            # print("Maximálně počet pokémonů k přejmenování:", pocet_pokemonu)
+            self.napis_stav("Počet pokémonů k přejmenování: ".upper() + str(pocet_pokemonu))
+            main.btn_pokemon()
 
-        for x in range(pocet_pokemonu):
-            img = main.adb_printsreen()
-            global novy_pokemon
-            novy_pokemon = Pokemon()
+            start = time.time()
+            # print("Čas začátku: ", time.strftime('%H:%M:%S', time.localtime(start)))
+            self.napis_stav_maly_box("Čas začátku: ".upper() + time.strftime('%H:%M:%S', time.localtime(start)))
+            doba_trvani = 0
 
-            if lze_prejmenovat(img):
-                main.btn_menu_pokemonu()
-                main.btn_appraise()
-                main.klik_do_stredu()
-                novy_pokemon.jmeno = self.zjisti_atributy_pokemona(x)
-                staty_pokemona = "* : {}\n% : {}\nATT : {}\nDEF : {}\nHP : {}".format(novy_pokemon.hvezd,
-                                                                                      novy_pokemon.procento,
-                                                                                      novy_pokemon.att_power,
-                                                                                      novy_pokemon.def_power,
-                                                                                      novy_pokemon.hp_power)
-                self.lbl_staty_pokemona.setText(staty_pokemona)
-                # if doba_trvani != 0:
-                # print("Pokemon #", (x + 1), " má hodnoty:", novy_pokemon.jmeno)
-                stav_prejmenovani = vypis_prubeh_prejmenovani(x, novy_pokemon.jmeno, img)
-                # cv2.imwrite("./pokemoni/pkm " + str(x+1) + " " + str(novy_pokemon.jmeno) + ".png", img)
+            def vypis_prubeh_prejmenovani(x, jmeno, img):
+                puvodni_jmeno = main.najdi_jmeno_pokemona(img)
+                self.napis_stav("Původní jméno pokémona #" + str(x + 1) + " " + puvodni_jmeno)
+                if (self.chckbx_preskocit.isChecked()) & (len(self.input_preskocit_prefix.text()) > 0):
+                    delka = len(self.input_preskocit_prefix.text())
+                    if puvodni_jmeno[0:delka] == self.input_preskocit_prefix.text():
+                        self.napis_stav("Pokemon #" + str(x + 1) + " začíná na zvolený text. Přeskakuji...")
+                        return 1
 
-                main.klik_do_stredu()
+                if self.spn_hranice_prejmenovani.value() >= int(novy_pokemon.procento):
+                    self.napis_stav(
+                        "Pokemon #" + str(x + 1) + " splnil kritérium pro extra přejmenování. Přejmenovávám na " + jmeno)
+                else:
+                    self.napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
+                return 0
 
-                if stav_prejmenovani == 0:
-                    while (True):
-                        main.btn_prejmenuj_pokemona(novy_pokemon.jmeno)  # přejmenování pokémona
+            for x in range(pocet_pokemonu):
+                img = main.adb_printsreen()
+                global novy_pokemon
+                novy_pokemon = Pokemon()
 
-                        # kontrola přejmenování pokémona
-                        img = main.adb_printsreen()
-                        nove_jmeno = main.najdi_jmeno_pokemona(img)
-                        self.napis_stav("Nové jméno pokémona #" + str(x + 1) + " " + nove_jmeno)
-                        if novy_pokemon.jmeno == nove_jmeno:
-                            # print("jmena jsou stejna")
-                            break
-                        # print("jmena se liší") # opakuj přejmenování když se jména liší
-
-                main.swipni_doprava()
-                time.sleep(5)
-
-                if doba_trvani == 0:
-                    end = time.time()
-                    doba_trvani = (end - start) // 1
-                    self.napis_stav_maly_box("Odhadovaný čas konce za: ".upper() + str(
-                        datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu))))
-
-                    # print("Hotovo pokémonů:", x + 1)
+                if lze_prejmenovat(img):
+                    main.btn_menu_pokemonu()
+                    main.btn_appraise()
+                    main.klik_do_stredu()
+                    novy_pokemon.jmeno = self.zjisti_atributy_pokemona(x)
+                    staty_pokemona = "* : {}\n% : {}\nATT : {}\nDEF : {}\nHP : {}".format(novy_pokemon.hvezd,
+                                                                                          novy_pokemon.procento,
+                                                                                          novy_pokemon.att_power,
+                                                                                          novy_pokemon.def_power,
+                                                                                          novy_pokemon.hp_power)
+                    self.lbl_staty_pokemona.setText(staty_pokemona)
+                    # if doba_trvani != 0:
                     # print("Pokemon #", (x + 1), " má hodnoty:", novy_pokemon.jmeno)
-                    # stav_prejmenovani = vypis_prubeh_prejmenovani(x, novy_pokemon.jmeno, img)
-            else:
-                self.napis_stav("Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
-                main.swipni_doprava()
-                time.sleep(5)
-            # kontrola na ukončení přejmenovávání
-            global ukonci_vlakno
-            if ukonci_vlakno | (self.spn_kolik_prejmenovat.value() == (x + 1)):
-                self.btn_prejmenovat.setText("Spustit přejmenovávání")
-                self.btn_prejmenovat.setEnabled(True)
-                self.grpbx_kolik.setEnabled(True)
-                self.grpbx_prejmenovat.setEnabled(True)
-                self.grpbx_preskocit.setEnabled(True)
-                break
+                    stav_prejmenovani = vypis_prubeh_prejmenovani(x, novy_pokemon.jmeno, img)
+                    # cv2.imwrite("./pokemoni/pkm " + str(x+1) + " " + str(novy_pokemon.jmeno) + ".png", img)
 
-        konec = time.time()
-        self.napis_stav_maly_box("Čas ukončení: ".upper() + time.strftime('%H:%M:%S', time.localtime(konec)))
-        self.napis_stav_maly_box("Doba trvání: ".upper() + str(datetime.timedelta(seconds=int(konec - start))))
-        main.btn_uprostred()
-        self.napis_stav("KONEC")
+                    main.klik_do_stredu()
+
+                    if stav_prejmenovani == 0:
+                        while (True):
+                            main.btn_prejmenuj_pokemona(novy_pokemon.jmeno)  # přejmenování pokémona
+
+                            # kontrola přejmenování pokémona
+                            img = main.adb_printsreen()
+                            nove_jmeno = main.najdi_jmeno_pokemona(img)
+                            self.napis_stav("Nové jméno pokémona #" + str(x + 1) + " " + nove_jmeno)
+                            if novy_pokemon.jmeno == nove_jmeno:
+                                # print("jmena jsou stejna")
+                                break
+                            # print("jmena se liší") # opakuj přejmenování když se jména liší
+
+                    main.swipni_doprava()
+                    time.sleep(5)
+
+                    if doba_trvani == 0:
+                        end = time.time()
+                        doba_trvani = (end - start) // 1
+                        self.napis_stav_maly_box("Odhadovaný čas konce za: ".upper() + str(
+                            datetime.timedelta(seconds=(doba_trvani * pocet_pokemonu))))
+
+                        # print("Hotovo pokémonů:", x + 1)
+                        # print("Pokemon #", (x + 1), " má hodnoty:", novy_pokemon.jmeno)
+                        # stav_prejmenovani = vypis_prubeh_prejmenovani(x, novy_pokemon.jmeno, img)
+                else:
+                    self.napis_stav("Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
+                    main.swipni_doprava()
+                    time.sleep(5)
+                # kontrola na ukončení přejmenovávání
+                global ukonci_vlakno
+                if ukonci_vlakno | (self.spn_kolik_prejmenovat.value() == (x + 1)):
+                    self.btn_prejmenovat.setText("Spustit přejmenovávání")
+                    self.btn_prejmenovat.setEnabled(True)
+                    self.grpbx_kolik.setEnabled(True)
+                    self.grpbx_prejmenovat.setEnabled(True)
+                    self.grpbx_preskocit.setEnabled(True)
+                    break
+
+            konec = time.time()
+            self.napis_stav_maly_box("Čas ukončení: ".upper() + time.strftime('%H:%M:%S', time.localtime(konec)))
+            self.napis_stav_maly_box("Doba trvání: ".upper() + str(datetime.timedelta(seconds=int(konec - start))))
+            main.btn_krizek()
+            self.napis_stav("KONEC")
+            main.btn_krizek()
 
     def zacni_prejmenovavat(self):
         global t1, ukonci_vlakno

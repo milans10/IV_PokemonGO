@@ -1,4 +1,4 @@
-#  Copyright (c) 2020. Created by Milan Svarc
+#  Copyright (c) 2021. Created by Milan Svarc
 import json
 import re
 import subprocess
@@ -141,7 +141,7 @@ def vyfot_okno():
     cv2.imshow("PokemonGOsnimac", ims)  # Show image
 
 
-def btn_uprostred():
+def btn_krizek():
     # PROSTŘEDNÍ TLAČÍTKO tapnutí
     # spust_adb_prikaz("tap 551 2026")
     if (x := najdi_tlacitko("btn_krizek.png")) == (0, 0):
@@ -151,10 +151,21 @@ def btn_uprostred():
             return
     spust_adb_prikaz("tap " + str(x[0]) + " " + str(x[1]))
 
+def btn_pokeball():
+    # TLAČÍTKO NA HLAVNÍ OBRAZOVCE S MAPOU, IKONA POKEBALLU SLOUŽÍCÍ PRO VSTUP DO MENU
+    souradnice = najdi_tlacitko("btn_pokeball.png")
+    if souradnice != (0, 0):
+        spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
+        return True
+    print("Tlačítko pokéballu nenalezeno!!!")
+    return False
 
 def btn_seznam_pokemonu():
     # SBÍRKA POKEMONŮ TLAČÍTKO tapnutí
-    spust_adb_prikaz("tap 238 1862")
+    # spust_adb_prikaz("tap 238 1862")
+    souradnice = najdi_tlacitko("btn_pokemon.png")
+    if souradnice != (0, 0):
+        spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
 
 
 def btn_menu_pokemonu():
