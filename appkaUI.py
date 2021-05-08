@@ -11,6 +11,7 @@
 import datetime
 import threading
 import time
+from builtins import range
 from tkinter import *
 
 import cv2
@@ -725,6 +726,28 @@ class Ui_MainWindow(object):
         self.grpbx_preskocit.setMinimumSize(QtCore.QSize(0, 100))
         self.grpbx_preskocit.setMaximumSize(QtCore.QSize(300, 100))
         self.grpbx_preskocit.setFont(font)
+
+        #############
+        # Vlastní filtr
+        self.chckbx_vlastni_filtr = QtWidgets.QCheckBox(self.grpbx_kolik)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.chckbx_vlastni_filtr.sizePolicy().hasHeightForWidth())
+        self.chckbx_vlastni_filtr.setSizePolicy(sizePolicy)
+        self.chckbx_vlastni_filtr.setMaximumSize(QtCore.QSize(300, 16777215))
+        self.chckbx_vlastni_filtr.setPalette(palette)
+        font = QtGui.QFont()
+        font.setFamily("JetBrains Mono")
+        self.chckbx_vlastni_filtr.setFont(font)
+        self.chckbx_vlastni_filtr.setStyleSheet("border-image: none;\n"
+                                                    "background: rgba(255, 255, 255, 0.0);")
+
+        self.chckbx_vlastni_filtr.setChecked(False)
+        self.chckbx_vlastni_filtr.setAutoExclusive(False)
+        self.chckbx_vlastni_filtr.setObjectName("chckbx_vlastni_filtr")
+        self.verticalLayout_3.addWidget(self.chckbx_vlastni_filtr)
+        #######################
         palette = QtGui.QPalette()
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
@@ -1143,6 +1166,7 @@ class Ui_MainWindow(object):
         self.btn_prejmenovat.setText(_translate("MainWindow", "Spustit přejmenovávání"))
         self.grpbx_kolik.setTitle(_translate("MainWindow", "Kolik přejmenovat..."))
         self.lbl_kolik_prejmenovat.setText(_translate("MainWindow", "Kolik přejmenovat pokémonů? (0=vše)"))
+        self.chckbx_vlastni_filtr.setText(_translate("MainWindow", "Zadám vlastní filtr přímo"))
         self.grpbx_prejmenovat.setTitle(_translate("MainWindow", "Přejmenovat..."))
         self.chckbx_prejmenovat.setText(_translate("MainWindow", "Přejmenovat pokémona s % nižším než"))
         self.lbl_prejmenovat.setText(_translate("MainWindow", "Přejmenovat na:"))
@@ -1208,15 +1232,22 @@ class Ui_MainWindow(object):
             self.text_zona2.clear()
 
     def spust_prejmenovani(self):
-        if main.btn_pokeball():
+        if main.btn_pokeball(): # PŘIDAT ŠANCI NA DALŠÍ POKUS
             # tlačítko nalezeno, lze pojračovat dále
             main.btn_seznam_pokemonu()
+
+            if self.chckbx_vlastni_filtr.isChecked():
+                self.napis_stav("Zvolte filtr na telefonu, čas 10 vteřin běží, pak se spustí automatické přejmenovávání !!!")
+                for odpocet in range(10, 0,-1):
+                    time.sleep(1)
+                    self.napis_stav("Přejmenování začne za: "+str(odpocet))
 
             if self.spn_kolik_prejmenovat.value() == 0:
                 pocet_pokemonu = int(self.zjisti_pocet_pokemonu())
             else:
                 pocet_pokemonu = int(self.spn_kolik_prejmenovat.value())
             # print("Maximálně počet pokémonů k přejmenování:", pocet_pokemonu)
+            self.napis_stav("")
             self.napis_stav("Počet pokémonů k přejmenování: ".upper() + str(pocet_pokemonu))
             main.btn_pokemon()
 
@@ -1232,6 +1263,10 @@ class Ui_MainWindow(object):
                     delka = len(self.input_preskocit_prefix.text())
                     if puvodni_jmeno[0:delka] == self.input_preskocit_prefix.text():
                         self.napis_stav("Pokemon #" + str(x + 1) + " začíná na zvolený text. Přeskakuji...")
+                        return 1
+                    delka = len("SHINY")
+                    if puvodni_jmeno[0:delka] == "SHINY":
+                        self.napis_stav("Pokemon #" + str(x + 1) + " začíná na SHINY. Přeskakuji...")
                         return 1
 
                 if self.spn_hranice_prejmenovani.value() >= int(novy_pokemon.procento):
