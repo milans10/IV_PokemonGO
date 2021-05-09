@@ -144,12 +144,18 @@ def vyfot_okno():
 def btn_krizek():
     # PROSTŘEDNÍ TLAČÍTKO tapnutí
     # spust_adb_prikaz("tap 551 2026")
-    if (x := najdi_tlacitko("btn_krizek.png")) == (0, 0):
-        if (x := najdi_tlacitko("btn_krizek2.png")) == (0, 0):
-            # nenalez
-            print("Tlačítko s křížkem narozpoznáno")
-            return
+
+    while True:
+        x = najdi_tlacitko("btn_krizek.png")
+        if x != (0, 0):
+            break
+        x = najdi_tlacitko("btn_krizek2.png")
+        if x != (0, 0):
+            break
+        print("Tlačítko s křížkem nenalezeno !!!")
+
     spust_adb_prikaz("tap " + str(x[0]) + " " + str(x[1]))
+
 
 def btn_pokeball():
     # TLAČÍTKO NA HLAVNÍ OBRAZOVCE S MAPOU, IKONA POKEBALLU SLOUŽÍCÍ PRO VSTUP DO MENU
@@ -159,6 +165,7 @@ def btn_pokeball():
         return True
     print("Tlačítko pokéballu nenalezeno!!!")
     return False
+
 
 def btn_seznam_pokemonu():
     # SBÍRKA POKEMONŮ TLAČÍTKO tapnutí

@@ -723,8 +723,8 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.chckbx_prejmenovat_posix)
         self.vlevo.addWidget(self.grpbx_prejmenovat)
         self.grpbx_preskocit = QtWidgets.QGroupBox(self.centralwidget)
-        self.grpbx_preskocit.setMinimumSize(QtCore.QSize(0, 100))
-        self.grpbx_preskocit.setMaximumSize(QtCore.QSize(300, 100))
+        self.grpbx_preskocit.setMinimumSize(QtCore.QSize(0, 120))
+        self.grpbx_preskocit.setMaximumSize(QtCore.QSize(300, 120))
         self.grpbx_preskocit.setFont(font)
 
         #############
@@ -741,13 +741,14 @@ class Ui_MainWindow(object):
         font.setFamily("JetBrains Mono")
         self.chckbx_vlastni_filtr.setFont(font)
         self.chckbx_vlastni_filtr.setStyleSheet("border-image: none;\n"
-                                                    "background: rgba(255, 255, 255, 0.0);")
+                                                "background: rgba(255, 255, 255, 0.0);")
 
         self.chckbx_vlastni_filtr.setChecked(False)
         self.chckbx_vlastni_filtr.setAutoExclusive(False)
         self.chckbx_vlastni_filtr.setObjectName("chckbx_vlastni_filtr")
         self.verticalLayout_3.addWidget(self.chckbx_vlastni_filtr)
         #######################
+
         palette = QtGui.QPalette()
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
@@ -865,6 +866,29 @@ class Ui_MainWindow(object):
         self.chckbx_preskocit.stateChanged.connect(self.stav_preskocit)
         self.input_preskocit_prefix = QtWidgets.QLineEdit(self.grpbx_preskocit)
         self.input_preskocit_prefix.setMaximumSize(QtCore.QSize(300, 16777215))
+
+        #############
+        # Přeskakovat Shiny
+        self.chckbx_shiny_filtr = QtWidgets.QCheckBox(self.grpbx_kolik)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.chckbx_shiny_filtr.sizePolicy().hasHeightForWidth())
+        self.chckbx_shiny_filtr.setSizePolicy(sizePolicy)
+        self.chckbx_shiny_filtr.setMaximumSize(QtCore.QSize(300, 16777215))
+        self.chckbx_shiny_filtr.setPalette(palette)
+        font = QtGui.QFont()
+        font.setFamily("JetBrains Mono")
+        self.chckbx_shiny_filtr.setFont(font)
+        self.chckbx_shiny_filtr.setStyleSheet("border-image: none;\n"
+                                              "background: rgba(255, 255, 255, 0.0);")
+
+        self.chckbx_shiny_filtr.setChecked(False)
+        self.chckbx_shiny_filtr.setAutoExclusive(False)
+        self.chckbx_shiny_filtr.setObjectName("chckbx_shiny_filtr")
+        self.verticalLayout_2.addWidget(self.chckbx_shiny_filtr)
+        #######################
+
         palette = QtGui.QPalette()
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
@@ -1167,6 +1191,7 @@ class Ui_MainWindow(object):
         self.grpbx_kolik.setTitle(_translate("MainWindow", "Kolik přejmenovat..."))
         self.lbl_kolik_prejmenovat.setText(_translate("MainWindow", "Kolik přejmenovat pokémonů? (0=vše)"))
         self.chckbx_vlastni_filtr.setText(_translate("MainWindow", "Zadám vlastní filtr přímo"))
+        self.chckbx_shiny_filtr.setText(_translate("MainWindow", "Přeskakovat pokémony začínající\nna SHINY"))
         self.grpbx_prejmenovat.setTitle(_translate("MainWindow", "Přejmenovat..."))
         self.chckbx_prejmenovat.setText(_translate("MainWindow", "Přejmenovat pokémona s % nižším než"))
         self.lbl_prejmenovat.setText(_translate("MainWindow", "Přejmenovat na:"))
@@ -1232,15 +1257,16 @@ class Ui_MainWindow(object):
             self.text_zona2.clear()
 
     def spust_prejmenovani(self):
-        if main.btn_pokeball(): # PŘIDAT ŠANCI NA DALŠÍ POKUS
+        if main.btn_pokeball():  # PŘIDAT ŠANCI NA DALŠÍ POKUS
             # tlačítko nalezeno, lze pojračovat dále
             main.btn_seznam_pokemonu()
 
             if self.chckbx_vlastni_filtr.isChecked():
-                self.napis_stav("Zvolte filtr na telefonu, čas 10 vteřin běží, pak se spustí automatické přejmenovávání !!!")
-                for odpocet in range(10, 0,-1):
+                self.napis_stav(
+                    "Zvolte filtr na telefonu, čas 10 vteřin běží, pak se spustí automatické přejmenovávání !!!")
+                for odpocet in range(10, 0, -1):
                     time.sleep(1)
-                    self.napis_stav("Přejmenování začne za: "+str(odpocet))
+                    self.napis_stav("Přejmenování začne za: " + str(odpocet - 1))
 
             if self.spn_kolik_prejmenovat.value() == 0:
                 pocet_pokemonu = int(self.zjisti_pocet_pokemonu())
@@ -1264,14 +1290,18 @@ class Ui_MainWindow(object):
                     if puvodni_jmeno[0:delka] == self.input_preskocit_prefix.text():
                         self.napis_stav("Pokemon #" + str(x + 1) + " začíná na zvolený text. Přeskakuji...")
                         return 1
-                    delka = len("SHINY")
-                    if puvodni_jmeno[0:delka] == "SHINY":
-                        self.napis_stav("Pokemon #" + str(x + 1) + " začíná na SHINY. Přeskakuji...")
-                        return 1
+
+                    # Přeskauji jméno začínající na SHINY
+                    if self.chckbx_shiny_filtr.isChecked():
+                        delka = len("SHINY")
+                        if puvodni_jmeno[0:delka] == "SHINY":
+                            self.napis_stav("Pokemon #" + str(x + 1) + " začíná na SHINY. Přeskakuji...")
+                            return 1
 
                 if self.spn_hranice_prejmenovani.value() >= int(novy_pokemon.procento):
                     self.napis_stav(
-                        "Pokemon #" + str(x + 1) + " splnil kritérium pro extra přejmenování. Přejmenovávám na " + jmeno)
+                        "Pokemon #" + str(
+                            x + 1) + " splnil kritérium pro extra přejmenování. Přejmenovávám na " + jmeno)
                 else:
                     self.napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
                 return 0
@@ -1325,7 +1355,8 @@ class Ui_MainWindow(object):
                         # print("Pokemon #", (x + 1), " má hodnoty:", novy_pokemon.jmeno)
                         # stav_prejmenovani = vypis_prubeh_prejmenovani(x, novy_pokemon.jmeno, img)
                 else:
-                    self.napis_stav("Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
+                    self.napis_stav(
+                        "Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
                     main.swipni_doprava()
                     time.sleep(5)
                 # kontrola na ukončení přejmenovávání
