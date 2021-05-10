@@ -855,17 +855,6 @@ class Ui_MainWindow(object):
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Window, brush)
         self.chckbx_preskocit.setPalette(palette)
-        font = QtGui.QFont()
-        font.setFamily("JetBrains Mono")
-        self.chckbx_preskocit.setFont(font)
-        self.chckbx_preskocit.setStyleSheet("border-image: none;\n"
-                                            "background: rgba(255, 255, 255, 0);")
-        self.chckbx_preskocit.setAutoExclusive(False)
-        self.chckbx_preskocit.setObjectName("chckbx_preskocit")
-        self.verticalLayout_2.addWidget(self.chckbx_preskocit)
-        self.chckbx_preskocit.stateChanged.connect(self.stav_preskocit)
-        self.input_preskocit_prefix = QtWidgets.QLineEdit(self.grpbx_preskocit)
-        self.input_preskocit_prefix.setMaximumSize(QtCore.QSize(300, 16777215))
 
         #############
         # Přeskakovat Shiny
@@ -888,6 +877,18 @@ class Ui_MainWindow(object):
         self.chckbx_shiny_filtr.setObjectName("chckbx_shiny_filtr")
         self.verticalLayout_2.addWidget(self.chckbx_shiny_filtr)
         #######################
+
+        font = QtGui.QFont()
+        font.setFamily("JetBrains Mono")
+        self.chckbx_preskocit.setFont(font)
+        self.chckbx_preskocit.setStyleSheet("border-image: none;\n"
+                                            "background: rgba(255, 255, 255, 0);")
+        self.chckbx_preskocit.setAutoExclusive(False)
+        self.chckbx_preskocit.setObjectName("chckbx_preskocit")
+        self.verticalLayout_2.addWidget(self.chckbx_preskocit)
+        self.chckbx_preskocit.stateChanged.connect(self.stav_preskocit)
+        self.input_preskocit_prefix = QtWidgets.QLineEdit(self.grpbx_preskocit)
+        self.input_preskocit_prefix.setMaximumSize(QtCore.QSize(300, 16777215))
 
         palette = QtGui.QPalette()
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
@@ -1285,18 +1286,19 @@ class Ui_MainWindow(object):
             def vypis_prubeh_prejmenovani(x, jmeno, img):
                 puvodni_jmeno = main.najdi_jmeno_pokemona(img)
                 self.napis_stav("Původní jméno pokémona #" + str(x + 1) + " " + puvodni_jmeno)
+
+                # Přeskauji jméno začínající na SHINY
+                if self.chckbx_shiny_filtr.isChecked():
+                    delka = len("SHINY")
+                    if puvodni_jmeno[0:delka] == "SHINY":
+                        self.napis_stav("Pokemon #" + str(x + 1) + " začíná na SHINY. Přeskakuji...")
+                        return 1
+
                 if (self.chckbx_preskocit.isChecked()) & (len(self.input_preskocit_prefix.text()) > 0):
                     delka = len(self.input_preskocit_prefix.text())
                     if puvodni_jmeno[0:delka] == self.input_preskocit_prefix.text():
                         self.napis_stav("Pokemon #" + str(x + 1) + " začíná na zvolený text. Přeskakuji...")
                         return 1
-
-                    # Přeskauji jméno začínající na SHINY
-                    if self.chckbx_shiny_filtr.isChecked():
-                        delka = len("SHINY")
-                        if puvodni_jmeno[0:delka] == "SHINY":
-                            self.napis_stav("Pokemon #" + str(x + 1) + " začíná na SHINY. Přeskakuji...")
-                            return 1
 
                 if self.spn_hranice_prejmenovani.value() >= int(novy_pokemon.procento):
                     self.napis_stav(
