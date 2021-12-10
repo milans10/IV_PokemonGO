@@ -67,7 +67,10 @@ def swipni_pokemony():
 
 
 def btn_prejmenuj_pokemona(nove_jmeno=""):
-    spust_adb_prikaz("tap 540 915")  # tapnutí na TLAČÍTKO přejmenování pokémona
+    # spust_adb_prikaz("tap 540 915")  # tapnutí na TLAČÍTKO přejmenování pokémona
+    souradnice = najdi_tlacitko("btn_rename.png")
+    if souradnice != (0, 0):
+        spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
 
     for ciselnik in range(13):
         spust_adb_prikaz("keyevent 67", 0)  # klávesa DELETE
@@ -80,10 +83,16 @@ def btn_prejmenuj_pokemona(nove_jmeno=""):
         spust_adb_prikaz(prikaz, 3)
 
     # tlačítko HOTOVO na virtuální klávesnici
-    spust_adb_prikaz("tap 990 2097")
+    # spust_adb_prikaz("tap 990 2097")
+    spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1]))) # tapnutí do prostoru nahoře, pro zavření klávesnice
 
     # tlačítko OK pro potvrzení nového jména
-    spust_adb_prikaz("tap 540 1170", 3)
+    # spust_adb_prikaz("tap 540 1170", 3)
+    souradnice = najdi_tlacitko("btn_rename_ok.png")
+    if souradnice != (0, 0):
+        spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
+    else:
+        print("nenalezeno OK rename")
 
 
 def najdi_jmeno_pokemona(screenshot):
@@ -159,11 +168,12 @@ def btn_krizek():
 
 def btn_pokeball():
     # TLAČÍTKO NA HLAVNÍ OBRAZOVCE S MAPOU, IKONA POKEBALLU SLOUŽÍCÍ PRO VSTUP DO MENU
-    souradnice = najdi_tlacitko("btn_pokeball.png")
-    if souradnice != (0, 0):
-        spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
-        return True
-    print("Tlačítko pokéballu nenalezeno!!!")
+    while True:
+        souradnice = najdi_tlacitko("btn_pokeball.png")
+        if souradnice != (0, 0):
+            spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
+            return True
+        print("Tlačítko pokéballu nenalezeno!!!")
     return False
 
 
@@ -177,7 +187,10 @@ def btn_seznam_pokemonu():
 
 def btn_menu_pokemonu():
     # ŘAZENÍ POKEMONŮ(MENU POKEMONA) TLAČÍTKO tapnutí
-    spust_adb_prikaz("tap 933 2025")
+    # spust_adb_prikaz("tap 933 2025")
+    souradnice = najdi_tlacitko("btn_menu_pokemona.png")
+    if souradnice != (0, 0):
+        spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
 
 
 def btn_appraise():
