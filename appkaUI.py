@@ -46,7 +46,14 @@ def lze_prejmenovat(img_rgb):
     threshold = 0.8
     loc = np.where(res >= threshold)
 
+    # Pokud se nepodaří najít s vysokou přesností, zkusíme snížit práh
     if not loc[0].size > 0:
+        print("Nenalezeno tlačítko přejmenovat s prahem 0.8, zkouším snížit na 0.6")
+        threshold = 0.6
+        loc = np.where(res >= threshold)
+
+    if not loc[0].size > 0:
+        print("prazdne - ani snížený práh nepomohl")
         # print("Nelze přejmenovat. Tlačítko není dostupné.")
         return False
     else:
