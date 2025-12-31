@@ -1,4 +1,4 @@
-#  Copyright (c) 2021. Created by Milan Svarc
+#  Copyright (c) 2025. Created by Milan Svarc
 import json
 import re
 import subprocess
@@ -39,7 +39,7 @@ def vrat_cislo_v_kruhu(cislo=0):
     return cislo
 
 
-## ADB příkazy
+# ADB příkazy
 def spust_adb_prikaz(text, sleep_time=2):
     subprocess.Popen(konstanty.ADB + text + " &")  # swipe o jeden řádek pokemonů
     time.sleep(sleep_time)
@@ -50,6 +50,7 @@ def adb_printsreen(grayscale=False):
                             stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, shell=True)
     image_bytes = pipe.stdout.read().replace(b'\r\n', b'\n')
+
     if grayscale:
         return cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_GRAYSCALE)
     else:
@@ -78,13 +79,16 @@ def btn_prejmenuj_pokemona(nove_jmeno=""):
     time.sleep(2)
     if len(nove_jmeno) > 12:
         prikaz = "keyboard text 'TOO LONG'"
+        print(prikaz)
     else:
         prikaz = "keyboard text '" + nove_jmeno + "'"
         spust_adb_prikaz(prikaz, 3)
 
     # tlačítko HOTOVO na virtuální klávesnici
     # spust_adb_prikaz("tap 990 2097")
-    spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1]))) # tapnutí do prostoru nahoře, pro zavření klávesnice
+    spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(
+        int(souradnice[1])))  # tapnutí do prostoru nahoře, pro zavření klávesnice
+    spust_adb_prikaz("tap " + str(int(200)) + " " + str(int(200)))
 
     # tlačítko OK pro potvrzení nového jména
     # spust_adb_prikaz("tap 540 1170", 3)
@@ -109,9 +113,9 @@ def najdi_jmeno_pokemona(screenshot):
         text = "Jméno nerozpoznáno"
         return text
     else:
-        osa_Y = min(loc[0])
-        osa_X = max(loc[1])
-        crop_img = img_gray[osa_Y:osa_Y + h + 40, 50:(osa_X)]
+        osa_y = min(loc[0])
+        osa_x = max(loc[1])
+        crop_img = img_gray[osa_y:osa_y + h + 40, 50:osa_x]
         pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
         text = pytesseract.image_to_string(crop_img)
         text = re.sub('[^0-9a-zA-Z%-]', '', text)
@@ -137,14 +141,13 @@ def najdi_tlacitko(img_tlacitka):
         top_left = bottom_right = (0, 0)
 
     def stred_nalezu(p1, p2):
-        return ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
+        return (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2
 
     return stred_nalezu(top_left, bottom_right)
 
 
 def vyfot_okno():
     printscreen = adb_printsreen()
-    cv2.imwrite("./IMAGE1.png", printscreen)  # Save screenshot
     # cv2.namedWindow("PokemonGO snímač", cv2.WINDOW_AUTOSIZE)  # Create window with freedom of dimensions
     ims = cv2.resize(printscreen, (300, 600))  # Resize image
     cv2.imshow("PokemonGOsnimac", ims)  # Show image
@@ -174,7 +177,6 @@ def btn_pokeball():
             spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
             return True
         print("Tlačítko pokéballu nenalezeno!!!")
-    return False
 
 
 def btn_seznam_pokemonu():

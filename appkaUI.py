@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#  Copyright (c) 2021. Created by Milan Svarc
+#  Copyright (c) 2025. Created by Milan Svarc
 
 
 # Form implementation generated from reading ui file '.\PoGoAppka.ui'
@@ -9,10 +9,10 @@
 #
 # WARNING! All changes made in this file will be lost!
 import datetime
+import sys
 import threading
 import time
 from builtins import range
-from tkinter import *
 
 import cv2
 import numpy as np
@@ -65,20 +65,32 @@ class Ui_MainWindow(object):
         self.lbl_printscreen.setPixmap(pixmap)
 
     def najdi_staty(self):
-        global prostredek, crop_img, stredy
-
         fotka = main.adb_printsreen()
         self.ukaz_printscreen_na_boku(fotka)  # ukáže fotka na boku okna
+
+        #image = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+
         img_gray = cv2.cvtColor(fotka, cv2.COLOR_BGR2GRAY)
+
         template = cv2.imread('img_statsIV.png', 0)
-        w, h = template.shape[::-1]
+        h, w = template.shape
 
         res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
         threshold = 0.8
         loc = np.where(res >= threshold)
 
+        # Pokud se nepodaří najít s vysokou přesností, zkusíme snížit práh
         if not loc[0].size > 0:
-            print("prazdne")
+            print("Nenalezeno s prahem 0.8, zkouším snížit na 0.6")
+            threshold = 0.6
+            loc = np.where(res >= threshold)
+
+        osa_X = 0
+        osa_Y = 0
+
+        if not loc[0].size > 0:
+            print("prazdne - ani snížený práh nepomohl")
+            return None
         else:
             osa_Y = min(loc[0])
             osa_X = max(loc[1])
@@ -86,9 +98,9 @@ class Ui_MainWindow(object):
             crop_img = img_gray[osa_Y:osa_Y + h, osa_X + 0:osa_X + w - 10]  # vyříznutí statů IV
             crop_img3 = crop_img[0:h, int(w / 2):int(
                 w / 2) + 1]  # vyříznutí kontrolního prhu pro nalezení souřadnic řádků s ATT, DEF, HP
-
             sekce = []
             stredy = []
+            prostredek = 0
             for a in range(h - 1, 0, -1):
                 barva = crop_img3[a, 0]
                 if all(barva != [255, 255, 255]):
@@ -101,41 +113,69 @@ class Ui_MainWindow(object):
                         if len(stredy) < 1:
                             prostredek = int(b / 2)
                         stredy.append(sekce[b] - prostredek)
-        return crop_img, w, stredy
+
+            cv2.rectangle(fotka, (osa_X, osa_Y), (osa_X + w, osa_Y + h), (0, 0, 255), 2)
+            for stred in stredy:
+                cv2.line(fotka, (osa_X, osa_Y + stred - 1), (osa_X + w - 10, osa_Y + stred - 1), (0, 255, 0), 1)
+            self.ukaz_printscreen_na_boku(fotka)
+            return crop_img, w, stredy, fotka, osa_X, osa_Y
 
     def zjisti_atributy_pokemona(self, poradi=1):
         nacteno = True
+        
+        # Inicializace proměnné pro uložení kalibrace pixelů, pokud ještě neexistuje
+        if not hasattr(self, 'jeden_bod_px'):
+            self.jeden_bod_px = None
 
         while nacteno:
             try:
-                crop_img, delka, stredy = self.najdi_staty()
+                vysledek = self.najdi_staty()
+                if vysledek is None:
+                    raise TypeError("Nenalezeno")
+                crop_img, delka, stredy, fotka, osa_X, osa_Y = vysledek
                 delka = delka - 10
                 att_hodnota = 0
                 def_hodnota = 0
                 hp_hodnota = 0
+                celkova_delka_att = 0
 
                 for a in range(delka):
-                    att_barva = crop_img[stredy[0] - 1, a]
-                    def_barva = crop_img[stredy[1] - 1, a]
-                    hp_barva = crop_img[stredy[2] - 1, a]
-                    if any((att_barva != [255, 255, 255]) & (att_barva != [226, 226, 226]) & (
-                            att_barva < [232, 232, 232])):
-                        att_hodnota = att_hodnota + 1
-                    if any((def_barva != [255, 255, 255]) & (def_barva != [226, 226, 226]) & (
-                            def_barva < [232, 232, 232])):
-                        def_hodnota = def_hodnota + 1
-                    if any((hp_barva != [255, 255, 255]) & (hp_barva != [226, 226, 226]) & (
-                            hp_barva < [232, 232, 232])):
-                        hp_hodnota = hp_hodnota + 1
+                    # Zjištění celkové délky baru (vše co není bílé pozadí > 250)
+                    if crop_img[stredy[0] - 1, a] < 250:
+                        celkova_delka_att += 1
 
+                    # Hledáme tmavší pixely (vyplněný graf), tedy hodnoty menší než práh (např. 225)
+                    # 0 = černá, 255 = bílá. Tím se vyloučí pozadí (255) i prázdný pruh (cca 226)
+                    if crop_img[stredy[0] - 1, a] < 225:
+                        att_hodnota += 1
+                        cv2.line(fotka, (osa_X + a, osa_Y + stredy[0] - 1), (osa_X + a, osa_Y + stredy[0] - 1), (255, 0, 0), 1)
+                    if crop_img[stredy[1] - 1, a] < 225:
+                        def_hodnota += 1
+                        cv2.line(fotka, (osa_X + a, osa_Y + stredy[1] - 1), (osa_X + a, osa_Y + stredy[1] - 1), (255, 0, 0), 1)
+                    if crop_img[stredy[2] - 1, a] < 225:
+                        hp_hodnota += 1
+                        cv2.line(fotka, (osa_X + a, osa_Y + stredy[2] - 1), (osa_X + a, osa_Y + stredy[2] - 1), (255, 0, 0), 1)
+
+                self.ukaz_printscreen_na_boku(fotka)
+                # print("Naměřené pixely (modré): ATT={}, DEF={}, HP={}".format(att_hodnota, def_hodnota, hp_hodnota))
+                # print("Celková délka baru (ATT bez bílé): {}".format(celkova_delka_att))
+                
                 # 22px na 1 hodnotu IV statu, rozmezí 0-15 pro každou hodnotu
-                att_hodnota = att_hodnota // 22
-                def_hodnota = def_hodnota // 22
-                hp_hodnota = hp_hodnota // 22
+                # Pokud nemáme zkalibrováno z prvního pokémona, vypočítáme to
+                if self.jeden_bod_px is None:
+                    self.jeden_bod_px = celkova_delka_att / 15
+                    # print(f"Kalibrace uložena: 1 bod = {self.jeden_bod_px} px")
+
+                att_hodnota = int(round(att_hodnota / self.jeden_bod_px, 0))
+                def_hodnota = int(round(def_hodnota / self.jeden_bod_px, 0))
+                hp_hodnota = int(round(hp_hodnota / self.jeden_bod_px, 0))
+
+                # print(f"Jeden box je {self.jeden_bod_px}px. ATT={att_hodnota}, DEF={def_hodnota}, HP={hp_hodnota}")
                 procento = (att_hodnota + def_hodnota + hp_hodnota) * 100 // 45
                 # text = str(procento) + "%(" + vrat_cislo_v_kruhu(att_hodnota) + ")(" + vrat_cislo_v_kruhu(
                 # def_hodnota) + ")(" + vrat_cislo_v_kruhu(hp_hodnota) +")"
                 text = str(procento) + "%" + str(att_hodnota) + "-" + str(def_hodnota) + "-" + str(hp_hodnota)
+                # print(f"text:{text} a délka je: {len(text)}")
                 # cv2.imwrite("./pokemoni/pkm" + str(poradi+ + 1) + " " + str(text) + "_detail.png", image)
 
                 global novy_pokemon
@@ -151,6 +191,7 @@ class Ui_MainWindow(object):
 
             except TypeError:
                 print("Nepovedlo se načíst data pokemona... Není vidět tabulka s hodnotami")
+                time.sleep(0.5) # Krátká pauza před dalším pokusem, aby se nezahltil procesor
                 nacteno = True
 
     def setupUi(self, MainWindow):
@@ -371,6 +412,8 @@ class Ui_MainWindow(object):
         self.spn_kolik_prejmenovat.setStyleSheet(
             "QSpinBox{border : 1px solid white; color: white; background-color: rgba(255,255,255,0);}")
         self.spn_kolik_prejmenovat.setObjectName("spn_kolik_prejmenovat")
+        self.spn_kolik_prejmenovat.setMinimum(0)
+        self.spn_kolik_prejmenovat.setMaximum(1000)
         self.verticalLayout_3.addWidget(self.spn_kolik_prejmenovat)
         self.vlevo.addWidget(self.grpbx_kolik)
         self.grpbx_prejmenovat = QtWidgets.QGroupBox(self.centralwidget)
