@@ -1,4 +1,4 @@
-#  Copyright (c) 2025. Created by Milan Svarc
+#  Copyright (c) 2026. Created by Milan Svarc
 import json
 import re
 import subprocess
@@ -40,7 +40,7 @@ def vrat_cislo_v_kruhu(cislo=0):
 
 
 # ADB příkazy
-def spust_adb_prikaz(text, sleep_time=2):
+def spust_adb_prikaz(text, sleep_time=1):
     subprocess.Popen(konstanty.ADB + text + " &")  # swipe o jeden řádek pokemonů
     time.sleep(sleep_time)
 
@@ -76,7 +76,7 @@ def btn_prejmenuj_pokemona(nove_jmeno=""):
     for ciselnik in range(13):
         spust_adb_prikaz("keyevent 67", 0)  # klávesa DELETE
 
-    time.sleep(2)
+    time.sleep(1)
     if len(nove_jmeno) > 12:
         prikaz = "keyboard text 'TOO LONG'"
         print(prikaz)
