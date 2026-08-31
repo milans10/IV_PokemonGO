@@ -1,1 +1,4 @@
-/venv/
+# Python cache
+__pycache__/
+*.py[cod]
+konstanty.py
