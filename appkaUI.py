@@ -1322,7 +1322,7 @@ class Ui_MainWindow(object):
 
 
     def zjisti_pocet_pokemonu(self):
-        # v daném výřezu zjisti počty pokemonu xx / yy, v případě filtru najde znak Q
+        # v daném výřezu zjisti počty pokemonu xx / yy, v případě filtru najde znak Q např."Q(5337)"
         image = main.adb_printsreen()
         souradnice, topleft, bottomright = main.najdi_tlacitko("nadpis_pokemon.png")
         if souradnice != (0, 0):
@@ -1337,7 +1337,10 @@ class Ui_MainWindow(object):
             else:
                 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
                 text = pytesseract.image_to_string(crop_img)
-                text = text.split("/")[0].strip()
+                if text.startswith('Q'):
+                    text = text[2:].replace(')','')
+                else:
+                    text = text.split("/")[0].strip()
                 return text
         else:
             print("Nenalezen nadpis Pokémon")
