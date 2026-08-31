@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#  Copyright (c) 2025. Created by Milan Svarc
+#  Copyright (c) 2026. Created by Milan Svarc
 
 
 # Form implementation generated from reading ui file '.\PoGoAppka.ui'
@@ -73,63 +73,122 @@ class Ui_MainWindow(object):
 
     def najdi_staty(self):
         fotka = main.adb_printsreen()
-        self.ukaz_printscreen_na_boku(fotka)  # ukáže fotka na boku okna
+        self.ukaz_printscreen_na_boku(fotka)
 
-        #image = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+        bars = self.najdi_stat_panel(fotka)
+
+        if bars is None:
+            print("Nepovedlo se najit staty - bary nenalezeny")
+            return None
+
+        stredy = [bar['y_center'] for bar in bars]
+        x1 = bars[0]['x1']
+        x2 = bars[0]['x2']
+        y_top = stredy[0] - 60  # priblizny odsazeni nahoru (label + okraj)
+        y_bottom = stredy[-1] + 20  # priblizny odsazeni dolu pod posledni bar
+
+        osa_X = x1
+        osa_Y = y_top
+        w = x2 - x1
+        h = y_bottom - y_top
 
         img_gray = cv2.cvtColor(fotka, cv2.COLOR_BGR2GRAY)
+        crop_img = img_gray[osa_Y:y_bottom, osa_X:x2]
+        crop_img_color = fotka[osa_Y:y_bottom, osa_X:x2]
 
-        template = cv2.imread('img_statsIV.png', 0)
-        h, w = template.shape
+        # stredy prepocitane relativne vuci oriznute oblasti (aby sedely na crop_img)
+        stredy_relativni = [s - osa_Y for s in stredy]
 
-        res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
-        threshold = 0.8
-        loc = np.where(res >= threshold)
+        cv2.rectangle(fotka, (osa_X, osa_Y), (osa_X + w, osa_Y + h), (0, 0, 255), 2)
+        for stred in stredy:
+            cv2.line(fotka, (osa_X, stred), (osa_X + w, stred), (0, 255, 0), 1)
+        self.ukaz_printscreen_na_boku(fotka)
 
-        # Pokud se nepodaří najít s vysokou přesností, zkusíme snížit práh
-        if not loc[0].size > 0:
-            print("Nenalezeno s prahem 0.8, zkouším snížit na 0.6")
-            threshold = 0.6
-            loc = np.where(res >= threshold)
+        return crop_img, w, stredy_relativni, fotka, osa_X, osa_Y
 
-        osa_X = 0
-        osa_Y = 0
+    def najdi_bary_v_crop(self, crop_color, min_w=200):
+        """
+        Najde vsechny sirsi kapsle (progress bary) v obrazku podle tvaru.
+        min_w filtruje mala tlacitka/ikony, ktera by take mohla spadnout do masky.
+        """
+        gray = cv2.cvtColor(crop_color, cv2.COLOR_BGR2GRAY)
+        mask = cv2.inRange(gray, 150, 245)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        if not loc[0].size > 0:
-            print("prazdne - ani snížený práh nepomohl")
-            return None
-        else:
-            osa_Y = min(loc[0])
-            osa_X = max(loc[1])
+        boxes = [cv2.boundingRect(c) for c in contours]
+        boxes = [b for b in boxes if b[2] > 50 and 15 < b[3] < 40]
+        boxes.sort(key=lambda b: b[1])
 
-            crop_img = img_gray[osa_Y:osa_Y + h, osa_X + 0:osa_X + w - 10]  # vyříznutí statů IV
-            crop_img3 = crop_img[0:h, int(w / 2):int(
-                w / 2) + 1]  # vyříznutí kontrolního prhu pro nalezení souřadnic řádků s ATT, DEF, HP
-            sekce = []
-            stredy = []
-            prostredek = 0
-            for a in range(h - 1, 0, -1):
-                barva = crop_img3[a, 0]
-                if all(barva != [255, 255, 255]):
-                    sekce.append(a)
+        # seskupeni rozseknutych kontur (delici rysky) do celych radku
+        rows = []
+        for b in boxes:
+            x, y, w, h = b
+            placed = False
+            for row in rows:
+                if abs(row[0][1] - y) < 10:
+                    row.append(b)
+                    placed = True
+                    break
+            if not placed:
+                rows.append([b])
 
-            sekce = sorted(sekce)
-            for b in range(len(sekce) - 1):
-                if b > 8:
-                    if ((sekce[b + 1] - sekce[b]) > 10) | (b == len(sekce) - 2):
-                        if len(stredy) < 1:
-                            prostredek = int(b / 2)
-                        stredy.append(sekce[b] - prostredek)
+        bars = []
+        for row in rows:
+            x1 = min(b[0] for b in row)
+            x2 = max(b[0] + b[2] for b in row)
+            y1 = min(b[1] for b in row)
+            y2 = max(b[1] + b[3] for b in row)
+            if x2 - x1 >= min_w:
+                bars.append({'x1': x1, 'x2': x2, 'y_center': (y1 + y2) // 2})
 
-            cv2.rectangle(fotka, (osa_X, osa_Y), (osa_X + w, osa_Y + h), (0, 0, 255), 2)
-            for stred in stredy:
-                cv2.line(fotka, (osa_X, osa_Y + stred - 1), (osa_X + w - 10, osa_Y + stred - 1), (0, 255, 0), 1)
-            self.ukaz_printscreen_na_boku(fotka)
-            return crop_img, w, stredy, fotka, osa_X, osa_Y
+        bars.sort(key=lambda b: b['y_center'])
+        return bars
+
+    def najdi_stat_panel(self, img):
+        """
+        Najde 3 stat-bary (Attack/Defense/HP) primo v celem screenshotu,
+        BEZ template matchingu. Rozpozna je jako 3 kapsle stejne sirky,
+        v pravidelnych rozestupech pod sebou.
+
+        Vraci seznam 3 dictu {'x1','x2','y_center'} serazenych shora dolu,
+        nebo None, pokud se nenajde vhodna trojice.
+        """
+        bars = self.najdi_bary_v_crop(img, min_w=200)
+
+        for i in range(len(bars) - 2):
+            b1, b2, b3 = bars[i], bars[i + 1], bars[i + 2]
+            same_x = abs(b1['x1'] - b2['x1']) < 15 and abs(b2['x1'] - b3['x1']) < 15
+            gap1 = b2['y_center'] - b1['y_center']
+            gap2 = b3['y_center'] - b2['y_center']
+            similar_gap = abs(gap1 - gap2) < 20
+            if same_x and similar_gap:
+                return [b1, b2, b3]
+
+        return None
+
+    def zmer_vyplneni(self, crop_color, bar, tolerance=15, edge_skip=6):
+        """
+        Zmeri procento vyplneni baru (0.0 - 1.0).
+        Hleda POSLEDNI pixel odpovidajici barve vyplne zleva doprava -
+        odolne vuci delicim ryskam i antialiasingu na zaoblenych rozich.
+        """
+        y = bar['y_center']
+        row = crop_color[y, bar['x1']:bar['x2']].astype(int)
+        width = len(row)
+
+        fill_color = row[edge_skip]
+
+        last_match = -1
+        for i, pixel in enumerate(row):
+            if np.all(np.abs(pixel - fill_color) < tolerance):
+                last_match = i
+
+        return (last_match + 1) / width
 
     def zjisti_atributy_pokemona(self, poradi=1):
+
         nacteno = True
-        
+
         # Inicializace proměnné pro uložení kalibrace pixelů, pokud ještě neexistuje
         if not hasattr(self, 'jeden_bod_px'):
             self.jeden_bod_px = None
@@ -137,6 +196,7 @@ class Ui_MainWindow(object):
         while nacteno:
             try:
                 vysledek = self.najdi_staty()
+
                 if vysledek is None:
                     raise TypeError("Nenalezeno")
                 crop_img, delka, stredy, fotka, osa_X, osa_Y = vysledek
@@ -155,18 +215,21 @@ class Ui_MainWindow(object):
                     # 0 = černá, 255 = bílá. Tím se vyloučí pozadí (255) i prázdný pruh (cca 226)
                     if crop_img[stredy[0] - 1, a] < 225:
                         att_hodnota += 1
-                        cv2.line(fotka, (osa_X + a, osa_Y + stredy[0] - 1), (osa_X + a, osa_Y + stredy[0] - 1), (255, 0, 0), 1)
+                        cv2.line(fotka, (osa_X + a, osa_Y + stredy[0] - 1), (osa_X + a, osa_Y + stredy[0] - 1),
+                                 (255, 0, 0), 1)
                     if crop_img[stredy[1] - 1, a] < 225:
                         def_hodnota += 1
-                        cv2.line(fotka, (osa_X + a, osa_Y + stredy[1] - 1), (osa_X + a, osa_Y + stredy[1] - 1), (255, 0, 0), 1)
+                        cv2.line(fotka, (osa_X + a, osa_Y + stredy[1] - 1), (osa_X + a, osa_Y + stredy[1] - 1),
+                                 (255, 0, 0), 1)
                     if crop_img[stredy[2] - 1, a] < 225:
                         hp_hodnota += 1
-                        cv2.line(fotka, (osa_X + a, osa_Y + stredy[2] - 1), (osa_X + a, osa_Y + stredy[2] - 1), (255, 0, 0), 1)
+                        cv2.line(fotka, (osa_X + a, osa_Y + stredy[2] - 1), (osa_X + a, osa_Y + stredy[2] - 1),
+                                 (255, 0, 0), 1)
 
                 self.ukaz_printscreen_na_boku(fotka)
                 # print("Naměřené pixely (modré): ATT={}, DEF={}, HP={}".format(att_hodnota, def_hodnota, hp_hodnota))
                 # print("Celková délka baru (ATT bez bílé): {}".format(celkova_delka_att))
-                
+
                 # 22px na 1 hodnotu IV statu, rozmezí 0-15 pro každou hodnotu
                 # Pokud nemáme zkalibrováno z prvního pokémona, vypočítáme to
                 if self.jeden_bod_px is None:
@@ -179,9 +242,10 @@ class Ui_MainWindow(object):
 
                 # print(f"Jeden box je {self.jeden_bod_px}px. ATT={att_hodnota}, DEF={def_hodnota}, HP={hp_hodnota}")
                 procento = (att_hodnota + def_hodnota + hp_hodnota) * 100 // 45
-                # text = str(procento) + "%(" + vrat_cislo_v_kruhu(att_hodnota) + ")(" + vrat_cislo_v_kruhu(
-                # def_hodnota) + ")(" + vrat_cislo_v_kruhu(hp_hodnota) +")"
+
+                # aktuální verze bez kruhů
                 text = str(procento) + "%" + str(att_hodnota) + "-" + str(def_hodnota) + "-" + str(hp_hodnota)
+
                 # print(f"text:{text} a délka je: {len(text)}")
                 # cv2.imwrite("./pokemoni/pkm" + str(poradi+ + 1) + " " + str(text) + "_detail.png", image)
 
@@ -198,7 +262,7 @@ class Ui_MainWindow(object):
 
             except TypeError:
                 print("Nepovedlo se načíst data pokemona... Není vidět tabulka s hodnotami")
-                time.sleep(0.5) # Krátká pauza před dalším pokusem, aby se nezahltil procesor
+                time.sleep(0.5)  # Krátká pauza před dalším pokusem, aby se nezahltil procesor
                 nacteno = True
 
     def setupUi(self, MainWindow):
@@ -1256,18 +1320,27 @@ class Ui_MainWindow(object):
         self.btn_vyfotit.setText(_translate("MainWindow", "Vyfotit"))
         self.btn_konec.setText(_translate("MainWindow", "Konec"))
 
-    # v daném výřezu zjisti počty pokemonu xx / yy, v případě filtru najde znak Q
+
     def zjisti_pocet_pokemonu(self):
+        # v daném výřezu zjisti počty pokemonu xx / yy, v případě filtru najde znak Q
         image = main.adb_printsreen()
-        crop_img = image[200:250, 400:660]
-        pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-        text = pytesseract.image_to_string(crop_img)
-        text = text.replace("(", "").replace(")", "")
-        if text[0] == "Q":
-            text = text.split("Q")
-            return text[1]
+        souradnice, topleft, bottomright = main.najdi_tlacitko("nadpis_pokemon.png")
+        if souradnice != (0, 0):
+            x = int(topleft[0])
+            y = int(topleft[1]) + 50
+            sx = int(bottomright[0])
+            sy = int(bottomright[1]) + 60
+            crop_img = image[y:sy, x:sx]
+            if crop_img.size == 0:
+                print("Chyba: prázdný výřez, zkontroluj souřadnice.")
+                return 0
+            else:
+                pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+                text = pytesseract.image_to_string(crop_img)
+                text = text.split("/")[0].strip()
+                return text
         else:
-            return text.split("/")[0]
+            print("Nenalezen nadpis Pokémon")
 
     def uprav_delku_jmena_pro_prejmenovani(self, text):
         hodnota = self.input_prejmenovat_na.text()
@@ -1349,7 +1422,9 @@ class Ui_MainWindow(object):
                     if puvodni_jmeno[0:delka] == self.input_preskocit_prefix.text():
                         self.napis_stav("Pokemon #" + str(x + 1) + " začíná na zvolený text. Přeskakuji...")
                         return 1
-
+                if puvodni_jmeno == jmeno:
+                    self.napis_stav("Pokemon #" + str(x + 1) + " má správné jméno dle statů. Přeskakuji...")
+                    return 1
                 if self.spn_hranice_prejmenovani.value() >= int(novy_pokemon.procento):
                     self.napis_stav(
                         "Pokemon #" + str(
@@ -1358,15 +1433,17 @@ class Ui_MainWindow(object):
                     self.napis_stav("Pokemon #" + str(x + 1) + " má hodnoty:" + jmeno)
                 return 0
 
+            preskocen_minuly = False
             for x in range(pocet_pokemonu):
                 img = main.adb_printsreen()
                 global novy_pokemon
                 novy_pokemon = Pokemon()
 
                 if lze_prejmenovat(img):
-                    main.btn_menu_pokemonu()
-                    main.btn_appraise()
-                    main.klik_do_stredu()
+                    if not preskocen_minuly:
+                        main.btn_menu_pokemonu()
+                        main.btn_appraise()
+                        main.klik_do_stredu()
                     novy_pokemon.jmeno = self.zjisti_atributy_pokemona(x)
                     staty_pokemona = "* : {}\n% : {}\nATT : {}\nDEF : {}\nHP : {}".format(novy_pokemon.hvezd,
                                                                                           novy_pokemon.procento,
@@ -1378,13 +1455,13 @@ class Ui_MainWindow(object):
                     # print("Pokemon #", (x + 1), " má hodnoty:", novy_pokemon.jmeno)
                     stav_prejmenovani = vypis_prubeh_prejmenovani(x, novy_pokemon.jmeno, img)
                     # cv2.imwrite("./pokemoni/pkm " + str(x+1) + " " + str(novy_pokemon.jmeno) + ".png", img)
-
-                    main.klik_do_stredu()
-
-                    if stav_prejmenovani == 0:
+                    if stav_prejmenovani == 1:
+                        preskocen_minuly = True
+                    elif stav_prejmenovani == 0:
+                        preskocen_minuly = False
+                        main.klik_do_stredu()
                         while (True):
                             main.btn_prejmenuj_pokemona(novy_pokemon.jmeno)  # přejmenování pokémona
-
                             # kontrola přejmenování pokémona
                             img = main.adb_printsreen()
                             nove_jmeno = main.najdi_jmeno_pokemona(img)
@@ -1395,7 +1472,7 @@ class Ui_MainWindow(object):
                             # print("jmena se liší") # opakuj přejmenování když se jména liší
 
                     main.swipni_doprava()
-                    time.sleep(5)
+                    time.sleep(1)
 
                     if doba_trvani == 0:
                         end = time.time()
@@ -1410,7 +1487,7 @@ class Ui_MainWindow(object):
                     self.napis_stav(
                         "Přeskakuji pokemona #" + str(x + 1) + " (nelze jej přejmenovat) na dalšího pokemona")
                     main.swipni_doprava()
-                    time.sleep(5)
+                    time.sleep(1)
                 # kontrola na ukončení přejmenovávání
                 global ukonci_vlakno
                 if ukonci_vlakno | (self.spn_kolik_prejmenovat.value() == (x + 1)):
@@ -1424,6 +1501,7 @@ class Ui_MainWindow(object):
             konec = time.time()
             self.napis_stav_maly_box("Čas ukončení: ".upper() + time.strftime('%H:%M:%S', time.localtime(konec)))
             self.napis_stav_maly_box("Doba trvání: ".upper() + str(datetime.timedelta(seconds=int(konec - start))))
+            main.klik_do_stredu()
             main.btn_krizek()
             self.napis_stav("KONEC")
             main.btn_krizek()

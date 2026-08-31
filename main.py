@@ -1,5 +1,4 @@
 #  Copyright (c) 2026. Created by Milan Svarc
-import json
 import re
 import subprocess
 import time
@@ -10,66 +9,38 @@ import pyglet
 import pytesseract
 
 import appkaUI
-import konstanty
-
-
-def vrat_cislo_v_kruhu(cislo=0):
-    # u"\u2460" jednicka v kolečku
-    # ①
-    # ipa = '"\\u2460"'
-    cislo = int(cislo)
-    if (cislo > 0) & (cislo < 11):
-        cislo = 2459 + cislo
-    elif cislo == 11:
-        cislo = "246A"
-    elif cislo == 12:
-        cislo = "246B"
-    elif cislo == 13:
-        cislo = "246C"
-    elif cislo == 14:
-        cislo = "246D"
-    elif cislo == 15:
-        cislo = "246E"
-    else:
-        cislo = "24EA"
-
-    ipa = '"\\u' + str(cislo) + '"'
-    cislo = json.loads(ipa)
-    print(cislo)
-    return cislo
 
 
 # ADB příkazy
 def spust_adb_prikaz(text, sleep_time=1):
-    subprocess.Popen(konstanty.ADB + text + " &")  # swipe o jeden řádek pokemonů
+    args = text.split()
+    subprocess.Popen(["adb", "shell", "input"] + args)
     time.sleep(sleep_time)
 
 
 def adb_printsreen(grayscale=False):
-    pipe = subprocess.Popen("adb shell screencap -p &",
-                            stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE, shell=True)
-    image_bytes = pipe.stdout.read().replace(b'\r\n', b'\n')
-
-    if grayscale:
-        return cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_GRAYSCALE)
-    else:
-        return cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+    pipe = subprocess.Popen(
+        ["adb", "exec-out", "screencap", "-p"],
+        stdout=subprocess.PIPE
+    )
+    image_bytes = pipe.stdout.read()
+    flag = cv2.IMREAD_GRAYSCALE if grayscale else cv2.IMREAD_COLOR
+    return cv2.imdecode(np.frombuffer(image_bytes, np.uint8), flag)
 
 
 def swipni_doprava():
-    # swipe o jeden řádek pokemonů
-    spust_adb_prikaz("swipe 940 1080 140 1080 1500")
+    # swipe doprava základná čas swipu je 400ms a celkový je 800ms
+    spust_adb_prikaz("swipe 940 1080 140 1080 400", sleep_time=0.8)
 
 
-def swipni_pokemony():
+def swipni_pokemony_nahoru():
     # swipe o jeden řádek pokemonů
-    spust_adb_prikaz("swipe 140 1296 140 1000 1500")
+    spust_adb_prikaz("swipe 140 1296 140 1000 400", sleep_time=0.8)
 
 
 def btn_prejmenuj_pokemona(nove_jmeno=""):
-    # spust_adb_prikaz("tap 540 915")  # tapnutí na TLAČÍTKO přejmenování pokémona
-    souradnice = najdi_tlacitko("btn_rename.png")
+    # tapnutí na TLAČÍTKO přejmenování pokémona
+    souradnice, *_ = najdi_tlacitko("btn_rename.png")
     if souradnice != (0, 0):
         spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
 
@@ -81,18 +52,17 @@ def btn_prejmenuj_pokemona(nove_jmeno=""):
         prikaz = "keyboard text 'TOO LONG'"
         print(prikaz)
     else:
+        # jmeno bez kruhu
         prikaz = "keyboard text '" + nove_jmeno + "'"
-        spust_adb_prikaz(prikaz, 3)
+        spust_adb_prikaz(prikaz, 2)
 
     # tlačítko HOTOVO na virtuální klávesnici
-    # spust_adb_prikaz("tap 990 2097")
     spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(
         int(souradnice[1])))  # tapnutí do prostoru nahoře, pro zavření klávesnice
     spust_adb_prikaz("tap " + str(int(200)) + " " + str(int(200)))
 
     # tlačítko OK pro potvrzení nového jména
-    # spust_adb_prikaz("tap 540 1170", 3)
-    souradnice = najdi_tlacitko("btn_rename_ok.png")
+    souradnice, *_ = najdi_tlacitko("btn_rename_ok.png")
     if souradnice != (0, 0):
         spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
     else:
@@ -143,25 +113,23 @@ def najdi_tlacitko(img_tlacitka):
     def stred_nalezu(p1, p2):
         return (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2
 
-    return stred_nalezu(top_left, bottom_right)
+    return stred_nalezu(top_left, bottom_right), top_left, bottom_right
 
 
 def vyfot_okno():
     printscreen = adb_printsreen()
-    # cv2.namedWindow("PokemonGO snímač", cv2.WINDOW_AUTOSIZE)  # Create window with freedom of dimensions
     ims = cv2.resize(printscreen, (300, 600))  # Resize image
     cv2.imshow("PokemonGOsnimac", ims)  # Show image
+    # cv2.imwrite("obrazek.png", printscreen)
 
 
 def btn_krizek():
     # PROSTŘEDNÍ TLAČÍTKO tapnutí
-    # spust_adb_prikaz("tap 551 2026")
-
     while True:
-        x = najdi_tlacitko("btn_krizek.png")
+        x, *_ = najdi_tlacitko("btn_krizek.png")
         if x != (0, 0):
             break
-        x = najdi_tlacitko("btn_krizek2.png")
+        x, *_ = najdi_tlacitko("btn_krizek2.png")
         if x != (0, 0):
             break
         print("Tlačítko s křížkem nenalezeno !!!")
@@ -172,7 +140,7 @@ def btn_krizek():
 def btn_pokeball():
     # TLAČÍTKO NA HLAVNÍ OBRAZOVCE S MAPOU, IKONA POKEBALLU SLOUŽÍCÍ PRO VSTUP DO MENU
     while True:
-        souradnice = najdi_tlacitko("btn_pokeball.png")
+        souradnice, *_ = najdi_tlacitko("btn_pokeball.png")
         if souradnice != (0, 0):
             spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
             return True
@@ -182,7 +150,7 @@ def btn_pokeball():
 def btn_seznam_pokemonu():
     # SBÍRKA POKEMONŮ TLAČÍTKO tapnutí
     # spust_adb_prikaz("tap 238 1862")
-    souradnice = najdi_tlacitko("btn_pokemon.png")
+    souradnice, *_ = najdi_tlacitko("btn_pokemon.png")
     if souradnice != (0, 0):
         spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
 
@@ -190,14 +158,14 @@ def btn_seznam_pokemonu():
 def btn_menu_pokemonu():
     # ŘAZENÍ POKEMONŮ(MENU POKEMONA) TLAČÍTKO tapnutí
     # spust_adb_prikaz("tap 933 2025")
-    souradnice = najdi_tlacitko("btn_menu_pokemona.png")
+    souradnice, *_ = najdi_tlacitko("btn_menu_pokemona.png")
     if souradnice != (0, 0):
         spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
 
 
 def btn_appraise():
     # APPRAISE TLAČÍTKO tapnutí
-    souradnice = najdi_tlacitko("btn_appraise.png")
+    souradnice, *_ = najdi_tlacitko("btn_appraise.png")
     if souradnice != (0, 0):
         spust_adb_prikaz("tap " + str(int(souradnice[0])) + " " + str(int(souradnice[1])))
 
@@ -214,7 +182,7 @@ def btn_pokemon(pozice_na_radku=1):
 
 def klik_do_stredu():
     # tapnutí do stredu obrazovky
-    spust_adb_prikaz("tap 540 1080", 3)
+    spust_adb_prikaz("tap 540 1080", 2)
 
 
 if __name__ == '__main__':
@@ -228,3 +196,6 @@ if __name__ == '__main__':
     adb = subprocess.Popen(['adb.exe', 'start-server'])
 
     appkaUI.zobrazUI()
+
+# přidat počítadlo přejmenovaných a nepřejmenovaných
+# Nové jméno pokémona #XXX Jméno nerozpoznáno - tady je nutný SKIP nejde vůbec menit jméno
